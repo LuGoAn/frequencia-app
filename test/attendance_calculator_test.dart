@@ -55,6 +55,23 @@ void main() {
       expect(AttendanceCalculator.formatAbsences(full), '1');
     });
 
+    test('Personalizado com 6 tempos por aula: parcial e completa', () {
+      // 1 de 6 tempos = 0.1666... -> 0,17
+      final p1 = AttendanceCalculator.calculateEquivalentAbsences(1, 6);
+      expect(p1, closeTo(1 / 6, 0.0001));
+      expect(AttendanceCalculator.formatAbsences(p1), '0,17');
+
+      // 3 de 6 tempos = 0.5 falta
+      final p3 = AttendanceCalculator.calculateEquivalentAbsences(3, 6);
+      expect(p3, 0.5);
+      expect(AttendanceCalculator.formatAbsences(p3), '0,5');
+
+      // 6 de 6 tempos = 1 falta completa
+      final p6 = AttendanceCalculator.calculateEquivalentAbsences(6, 6);
+      expect(p6, 1.0);
+      expect(AttendanceCalculator.formatAbsences(p6), '1');
+    });
+
     test('Cálculo de percentual de frequência e limites', () {
       // 4 faltas acumuladas em 30 aulas = (26 / 30) = 86.67%
       final pct30 = AttendanceCalculator.calculateFrequencyPercentage(

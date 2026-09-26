@@ -60,7 +60,6 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
   void _togglePeriod(int period) {
     setState(() {
       if (_selectedPeriods.contains(period)) {
-        // Only remove if not the only one, or allow empty with disabled button
         _selectedPeriods.remove(period);
       } else {
         _selectedPeriods.add(period);
@@ -73,6 +72,12 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
       for (int i = 1; i <= widget.periodsPerClass; i++) {
         _selectedPeriods.add(i);
       }
+    });
+  }
+
+  void _clearAll() {
+    setState(() {
+      _selectedPeriods.clear();
     });
   }
 
@@ -93,6 +98,109 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
     if (picked != null) {
       setState(() => _selectedDate = picked);
     }
+  }
+
+  Widget _buildPeriodCard(int period, bool isSelected, bool isDark) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => _togglePeriod(period),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark
+                  ? AppColors.primaryLight.withOpacity(0.18)
+                  : AppColors.primaryContainer.withOpacity(0.5))
+              : (isDark
+                  ? AppColors.darkSurfaceElevated
+                  : AppColors.lightBackground),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            width: isSelected ? 1.8 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 20,
+              color: isSelected
+                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                  : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$periodº tempo',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPeriodChip(int period, bool isSelected, bool isDark) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => _togglePeriod(period),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark
+                  ? AppColors.primaryLight.withOpacity(0.18)
+                  : AppColors.primaryContainer.withOpacity(0.5))
+              : (isDark
+                  ? AppColors.darkSurfaceElevated
+                  : AppColors.lightBackground),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected
+                ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+            width: isSelected ? 1.8 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 18,
+              color: isSelected
+                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                  : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$periodº tempo',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected
+                    ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -226,12 +334,15 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
                     color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                   ),
                 ),
-                if (widget.periodsPerClass > 1 &&
-                    _selectedPeriods.length < widget.periodsPerClass)
+                if (widget.periodsPerClass > 1)
                   GestureDetector(
-                    onTap: _selectAll,
+                    onTap: _selectedPeriods.length == widget.periodsPerClass
+                        ? _clearAll
+                        : _selectAll,
                     child: Text(
-                      'Selecionar todos',
+                      _selectedPeriods.length == widget.periodsPerClass
+                          ? 'Desmarcar todos'
+                          : 'Selecionar todos',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -243,69 +354,40 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
             ),
             const SizedBox(height: 12),
 
-            // Period Selection Cards / Buttons
-            Row(
-              children: List.generate(widget.periodsPerClass, (index) {
-                final period = index + 1;
-                final isSelected = _selectedPeriods.contains(period);
+            // Period Selection Cards (Row for <=3, Grid for >3)
+            if (widget.periodsPerClass <= 3)
+              Row(
+                children: List.generate(widget.periodsPerClass, (index) {
+                  final period = index + 1;
+                  final isSelected = _selectedPeriods.contains(period);
 
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: index < widget.periodsPerClass - 1 ? 10 : 0,
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => _togglePeriod(period),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? (isDark
-                                  ? AppColors.primaryLight.withOpacity(0.18)
-                                  : AppColors.primaryContainer.withOpacity(0.5))
-                              : (isDark
-                                  ? AppColors.darkSurfaceElevated
-                                  : AppColors.lightBackground),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected
-                                ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                            width: isSelected ? 1.8 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              isSelected
-                                  ? Icons.check_circle_rounded
-                                  : Icons.radio_button_unchecked_rounded,
-                              size: 20,
-                              color: isSelected
-                                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                                  : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '$periodº tempo',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                color: isSelected
-                                    ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                              ),
-                            ),
-                          ],
-                        ),
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        right: index < widget.periodsPerClass - 1 ? 10 : 0,
                       ),
+                      child: _buildPeriodCard(period, isSelected, isDark),
                     ),
-                  ),
-                );
-              }),
-            ),
+                  );
+                }),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: widget.periodsPerClass <= 4 ? 2 : 3,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: widget.periodsPerClass <= 4 ? 2.3 : 2.0,
+                ),
+                itemCount: widget.periodsPerClass,
+                itemBuilder: (context, index) {
+                  final period = index + 1;
+                  final isSelected = _selectedPeriods.contains(period);
+                  return _buildPeriodChip(period, isSelected, isDark);
+                },
+              ),
             const SizedBox(height: 16),
 
             // Real-time calculation helper card

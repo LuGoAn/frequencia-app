@@ -23,9 +23,11 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _limitController;
+  late TextEditingController _customPeriodsController;
 
   late String _selectedIconKey;
   late int _periodsPerClass;
+  bool _isCustomPeriods = false;
   bool _manuallyPickedIcon = false;
 
   bool get isEditing => widget.discipline != null;
@@ -44,6 +46,10 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
     );
     _selectedIconKey = d?.iconKey ?? 'code';
     _periodsPerClass = d?.periodsPerClass ?? 2;
+    _isCustomPeriods = _periodsPerClass > 3;
+    _customPeriodsController = TextEditingController(
+      text: _isCustomPeriods ? '$_periodsPerClass' : '4',
+    );
     if (d != null) {
       _manuallyPickedIcon = true;
     }
@@ -71,6 +77,7 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
     _nameController.removeListener(_onNameChanged);
     _nameController.dispose();
     _limitController.dispose();
+    _customPeriodsController.dispose();
     super.dispose();
   }
 
@@ -89,12 +96,13 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
 
     final name = _nameController.text.trim();
     final limit = double.tryParse(_limitController.text.replaceAll(',', '.')) ?? 15.0;
+    final periods = _periodsPerClass > 0 ? _periodsPerClass : 2;
 
     if (isEditing) {
       final updated = widget.discipline!.copyWith(
         name: name,
         iconKey: _selectedIconKey,
-        periodsPerClass: _periodsPerClass,
+        periodsPerClass: periods,
         absenceLimit: limit,
       );
       await widget.appState.updateDiscipline(updated);
@@ -103,7 +111,7 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: name,
         iconKey: _selectedIconKey,
-        periodsPerClass: _periodsPerClass,
+        periodsPerClass: periods,
         absenceLimit: limit,
       );
       await widget.appState.addDiscipline(newDiscipline);
@@ -112,6 +120,70 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
     if (mounted) {
       Navigator.of(context).pop();
     }
+  }
+
+  Widget _buildPeriodOption({
+    required String label,
+    required String subLabel,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isDark,
+    bool isCustom = false,
+  }) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark
+                    ? AppColors.primaryLight.withOpacity(0.18)
+                    : AppColors.primaryContainer.withOpacity(0.5))
+                : (isDark ? AppColors.darkSurface : AppColors.lightSurface),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+              width: isSelected ? 1.8 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: isCustom && label == '+' ? 22 : 19,
+                  fontWeight: FontWeight.w800,
+                  color: isSelected
+                      ? (isDark ? AppColors.primaryLight : AppColors.primary)
+                      : (isDark
+                          ? AppColors.darkTextPrimary
+                          : AppColors.lightTextPrimary),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: isDark
+                      ? AppColors.darkTextSecondary
+                      : AppColors.lightTextSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -219,67 +291,178 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
+              // 1, 2, 3 padrão + botão Personalizado
               Row(
-                children: [1, 2, 3].map((count) {
-                  final isSelected = _periodsPerClass == count;
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(right: count < 3 ? 10 : 0),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => setState(() => _periodsPerClass = count),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? (isDark
-                                    ? AppColors.primaryLight.withOpacity(0.18)
-                                    : AppColors.primaryContainer.withOpacity(0.5))
-                                : (isDark
-                                    ? AppColors.darkSurface
-                                    : AppColors.lightSurface),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isSelected
-                                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                                  : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                              width: isSelected ? 1.8 : 1,
+                children: [
+                  _buildPeriodOption(
+                    label: '1',
+                    subLabel: 'tempo',
+                    isSelected: !_isCustomPeriods && _periodsPerClass == 1,
+                    onTap: () {
+                      setState(() {
+                        _isCustomPeriods = false;
+                        _periodsPerClass = 1;
+                      });
+                    },
+                    isDark: isDark,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildPeriodOption(
+                    label: '2',
+                    subLabel: 'tempos',
+                    isSelected: !_isCustomPeriods && _periodsPerClass == 2,
+                    onTap: () {
+                      setState(() {
+                        _isCustomPeriods = false;
+                        _periodsPerClass = 2;
+                      });
+                    },
+                    isDark: isDark,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildPeriodOption(
+                    label: '3',
+                    subLabel: 'tempos',
+                    isSelected: !_isCustomPeriods && _periodsPerClass == 3,
+                    onTap: () {
+                      setState(() {
+                        _isCustomPeriods = false;
+                        _periodsPerClass = 3;
+                      });
+                    },
+                    isDark: isDark,
+                  ),
+                  const SizedBox(width: 8),
+                  _buildPeriodOption(
+                    label: _isCustomPeriods ? '$_periodsPerClass' : '+',
+                    subLabel: _isCustomPeriods ? 'tempos' : 'Outro',
+                    isSelected: _isCustomPeriods,
+                    isCustom: true,
+                    onTap: () {
+                      setState(() {
+                        _isCustomPeriods = true;
+                        final parsed = int.tryParse(_customPeriodsController.text);
+                        if (parsed != null && parsed > 0) {
+                          _periodsPerClass = parsed;
+                        } else {
+                          _periodsPerClass = 4;
+                          _customPeriodsController.text = '4';
+                        }
+                      });
+                    },
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+
+              // Seletor numérico para valor personalizado
+              if (_isCustomPeriods) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Valor personalizado',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                              ),
                             ),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                '$count',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: isSelected
-                                      ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                                      : (isDark
-                                          ? AppColors.darkTextPrimary
-                                          : AppColors.lightTextPrimary),
-                                ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Defina o número exato de tempos (ex: 4, 6, 8)',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                count == 1 ? 'tempo' : 'tempos',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightBackground,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_rounded, size: 18),
+                              onPressed: _periodsPerClass > 1
+                                  ? () {
+                                      setState(() {
+                                        _periodsPerClass--;
+                                        _customPeriodsController.text = '$_periodsPerClass';
+                                      });
+                                    }
+                                  : null,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            SizedBox(
+                              width: 38,
+                              child: TextFormField(
+                                controller: _customPeriodsController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+                                ),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  isDense: true,
+                                ),
+                                onChanged: (val) {
+                                  final n = int.tryParse(val);
+                                  if (n != null && n > 0 && n <= 30) {
+                                    setState(() {
+                                      _periodsPerClass = n;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              onPressed: _periodsPerClass < 30
+                                  ? () {
+                                      setState(() {
+                                        _periodsPerClass++;
+                                        _customPeriodsController.text = '$_periodsPerClass';
+                                      });
+                                    }
+                                  : null,
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
 
               // Limite de Faltas
