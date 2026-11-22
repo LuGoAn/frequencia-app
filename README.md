@@ -2,7 +2,7 @@
 
 App Android pra controlar faltas da faculdade. Fiz porque eu vivia fazendo conta de cabeça pra saber quantos dias ainda podia faltar em cada matéria, e às vezes errava.
 
-Funciona offline e não tem login. Os dados ficam só no celular. A única coisa que usa internet é a checagem de versão nova: quando sai uma release aqui no GitHub, o app mostra um aviso com o link pro APK.
+No meu caso, Banco de Dados deixa faltar 5 dias no semestre. Se eu falto hoje, abro o app, toco no +1 do lado da matéria e ela passa pra 1 de 5, com o aviso de que ainda dá pra faltar mais 4 dias. Quando chega perto do limite a matéria fica amarela na lista, e quando estoura fica vermelha.
 
 <p align="center">
   <img src="docs/screenshots/lista.png" alt="Lista de disciplinas com as faltas de cada uma" width="32%">
@@ -10,13 +10,11 @@ Funciona offline e não tem login. Os dados ficam só no celular. A única coisa
   <img src="docs/screenshots/dias.png" alt="Calculando os dias a partir do limite em faltas do sistema" width="32%">
 </p>
 
-## O que ele faz
+Se a falta foi em outro dia, dá pra abrir a matéria e escolher a data. Lá dentro aparece um quadrado por dia que dá pra faltar, e os usados ficam vermelhos.
 
-Você cadastra cada disciplina com quantos dias pode faltar no semestre. Quando faltar, toca no +1 da disciplina na lista e a falta de hoje já fica registrada. Se for de outro dia, abre a disciplina e usa "Registrar falta", que deixa escolher a data. Na tela da disciplina aparece um quadrado por dia que dá pra faltar, e os que já foram usados ficam vermelhos. Quando passa de 70% do limite a disciplina fica amarela na lista, e quando estoura fica vermelha.
+O sistema da minha faculdade mostra o limite em faltas por tempo de aula: Banco de Dados aparece como 0/15, mas como são 3 tempos por dia, na prática são 5 dias. Pra quem tem o mesmo problema, o cadastro tem um "Não sabe quantos dias?" que faz essa conta.
 
-Na minha faculdade o sistema mostra o limite em faltas por tempo de aula: Banco de Dados aparece como 0/15, mas como são 3 tempos por dia, na prática são 5 dias. Se for o seu caso, no cadastro tem um "Não sabe quantos dias?" que faz essa conta.
-
-O ícone da disciplina é sugerido pelo nome enquanto você digita (Banco de Dados vira um ícone de banco, Anatomia vira um boneco, Direito Civil vira um martelo etc.), mas dá pra trocar. Tem ícone pra computação, engenharia, saúde, direito, negócios, artes e humanas. Tem tema claro e escuro.
+O app funciona offline, sem login, e os dados ficam só no celular. A única coisa que usa internet é a checagem de versão nova: quando sai uma release aqui no GitHub, aparece um aviso com o link pro APK.
 
 ## Instalar
 
@@ -29,26 +27,7 @@ Precisa do Flutter 3.47 ou mais novo.
 ```bash
 flutter pub get
 flutter run
-```
-
-Os testes cobrem o cálculo das faltas, a sugestão de ícone e o fluxo de cadastro:
-
-```bash
 flutter test
 ```
 
-## Como está organizado
-
-```text
-lib/
-├── models/      disciplina e registro de falta
-├── services/    cálculo das faltas, sugestão de ícone, armazenamento e checagem de versão
-├── state/       estado do app (ChangeNotifier)
-├── screens/     lista, detalhe e cadastro de disciplina
-├── widgets/     grade de faltas, linha da lista, sheets e o diálogo de dias
-└── theme/       cores e tema
-```
-
-Os dados são salvos em JSON com `shared_preferences`. As datas usam `intl` em pt-BR.
-
-As disciplinas e faltas que aparecem nas capturas de tela são de exemplo.
+Os dados ficam salvos em JSON no `shared_preferences`.
