@@ -1,136 +1,59 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:frequencia_app/models/absence_record.dart';
+import 'package:frequencia_app/models/discipline.dart';
 import 'package:frequencia_app/services/attendance_calculator.dart';
 
 void main() {
-  group('AttendanceCalculator Tests', () {
-    test('1 tempo por aula: falta completa', () {
-      final records = [
-        AbsenceRecord(id: '1', date: DateTime(2026, 9, 20), missedPeriods: [1]),
-        AbsenceRecord(id: '2', date: DateTime(2026, 9, 21), missedPeriods: [1]),
-      ];
-      final totalPeriods = AttendanceCalculator.calculateTotalMissedPeriods(records);
-      final equivalent = AttendanceCalculator.calculateEquivalentAbsences(totalPeriods, 1);
-
-      expect(totalPeriods, 2);
-      expect(equivalent, 2.0);
-      expect(AttendanceCalculator.formatAbsences(equivalent), '2');
+  group('AttendanceCalculator', () {
+    test('cada tempo perdido conta uma falta', () {
+      final d = Discipline(
+        id: 'bd',
+        name: 'Banco de Dados',
+        iconKey: 'database',
+        periodsPerClass: 3,
+        absenceLimit: 15,
+        absences: [
+          AbsenceRecord(id: '1', date: DateTime(2026, 9, 20), missedPeriods: [1, 2, 3]),
+          AbsenceRecord(id: '2', date: DateTime(2026, 9, 27), missedPeriods: [2, 3]),
+        ],
+      );
+      expect(d.totalMissedPeriods, 5);
     });
 
-    test('2 tempos por aula: falta parcial e completa', () {
-      final records = [
-        AbsenceRecord(id: '1', date: DateTime(2026, 9, 20), missedPeriods: [1]),
-        AbsenceRecord(id: '2', date: DateTime(2026, 9, 21), missedPeriods: [1, 2]),
-        AbsenceRecord(id: '3', date: DateTime(2026, 9, 22), missedPeriods: [1, 2]),
-        AbsenceRecord(id: '4', date: DateTime(2026, 9, 23), missedPeriods: [2]),
-        AbsenceRecord(id: '5', date: DateTime(2026, 9, 24), missedPeriods: [1]),
-      ];
-      final totalPeriods = AttendanceCalculator.calculateTotalMissedPeriods(records);
-      final equivalent = AttendanceCalculator.calculateEquivalentAbsences(totalPeriods, 2);
-
-      expect(totalPeriods, 7);
-      expect(equivalent, 3.5);
-      expect(AttendanceCalculator.formatAbsences(equivalent), '3,5');
+    test('dias que ainda dá pra faltar', () {
+      // 15 faltas com 3 tempos por dia = 5 dias
+      expect(AttendanceCalculator.remainingDays(15, 0, 3), 5);
+      expect(AttendanceCalculator.remainingDays(15, 3, 3), 4);
+      expect(AttendanceCalculator.remainingDays(15, 5, 3), 3);
+      expect(AttendanceCalculator.remainingDays(15, 14, 3), 0);
+      expect(AttendanceCalculator.remainingDays(15, 18, 3), 0);
+      expect(AttendanceCalculator.remainingDays(10, 3, 1), 7);
     });
 
-    test('3 tempos por aula: falta parcial (1 ou 2 tempos) e completa', () {
-      final partial1 = AttendanceCalculator.calculateEquivalentAbsences(1, 3);
-      expect(partial1, closeTo(1 / 3, 0.0001));
-      expect(AttendanceCalculator.formatAbsences(partial1), '0,33');
-
-      final partial2 = AttendanceCalculator.calculateEquivalentAbsences(2, 3);
-      expect(partial2, closeTo(2 / 3, 0.0001));
-      expect(AttendanceCalculator.formatAbsences(partial2), '0,67');
-
-      final full = AttendanceCalculator.calculateEquivalentAbsences(3, 3);
-      expect(full, 1.0);
-      expect(AttendanceCalculator.formatAbsences(full), '1');
+    test('status pelo limite', () {
+      AttendanceHealthStatus s(int a) => AttendanceCalculator.getStatus(absences: a, limit: 10);
+      expect(s(0), AttendanceHealthStatus.safe);
+      expect(s(6), AttendanceHealthStatus.safe);
+      expect(s(7), AttendanceHealthStatus.warning);
+      expect(s(10), AttendanceHealthStatus.reached);
+      expect(s(11), AttendanceHealthStatus.exceeded);
     });
 
-    test('Personalizado com 6 tempos por aula: parcial e completa', () {
-      // 1 de 6 tempos = 0.1666... -> 0,17
-      final p1 = AttendanceCalculator.calculateEquivalentAbsences(1, 6);
-      expect(p1, closeTo(1 / 6, 0.0001));
-      expect(AttendanceCalculator.formatAbsences(p1), '0,17');
-
-      // 3 de 6 tempos = 0.5 falta
-      final p3 = AttendanceCalculator.calculateEquivalentAbsences(3, 6);
-      expect(p3, 0.5);
-      expect(AttendanceCalculator.formatAbsences(p3), '0,5');
-
-      // 6 de 6 tempos = 1 falta completa
-      final p6 = AttendanceCalculator.calculateEquivalentAbsences(6, 6);
-      expect(p6, 1.0);
-      expect(AttendanceCalculator.formatAbsences(p6), '1');
+    test('frequência estimada', () {
+      expect(AttendanceCalculator.frequencyPercentage(absences: 0, totalPeriods: 60), 100.0);
+      expect(AttendanceCalculator.frequencyPercentage(absences: 15, totalPeriods: 60), 75.0);
+      expect(AttendanceCalculator.frequencyPercentage(absences: 80, totalPeriods: 60), 0.0);
+      expect(AttendanceCalculator.frequencyPercentage(absences: 3, totalPeriods: 0), 100.0);
     });
 
-    test('Cálculo de percentual de frequência e limites', () {
-      // 4 faltas acumuladas em 30 aulas = (26 / 30) = 86.67%
-      final pct30 = AttendanceCalculator.calculateFrequencyPercentage(
-        equivalentAbsences: 4.0,
-        totalExpectedClasses: 30,
-      );
-      expect(pct30.round(), 87);
-
-      // 4 faltas em 60 aulas (padrão 15 limite * 4) = 56/60 = 93.3%
-      final pct60 = AttendanceCalculator.calculateFrequencyPercentage(
-        equivalentAbsences: 4.0,
-        totalExpectedClasses: 60,
-      );
-      expect(pct60, closeTo(93.33, 0.1));
-
-      final pctZero = AttendanceCalculator.calculateFrequencyPercentage(
-        equivalentAbsences: 0.0,
-        totalExpectedClasses: 60,
-      );
-      expect(pctZero, 100.0);
-
-      final pctOver = AttendanceCalculator.calculateFrequencyPercentage(
-        equivalentAbsences: 70.0,
-        totalExpectedClasses: 60,
-      );
-      expect(pctOver, 0.0);
-    });
-
-    test('Status de saúde da frequência: seguro, atenção, atingido e estourado', () {
-      const limit = 15.0;
-
-      // 4 faltas de 15 = 26.6% -> Seguro (< 70%)
-      expect(
-        AttendanceCalculator.getStatus(equivalentAbsences: 4.0, limit: limit),
-        AttendanceHealthStatus.safe,
-      );
-
-      // 11 faltas de 15 = 73.3% -> Atenção (>= 70%)
-      expect(
-        AttendanceCalculator.getStatus(equivalentAbsences: 11.0, limit: limit),
-        AttendanceHealthStatus.warning,
-      );
-
-      // 15 faltas de 15 = 100% -> Limite atingido
-      expect(
-        AttendanceCalculator.getStatus(equivalentAbsences: 15.0, limit: limit),
-        AttendanceHealthStatus.reached,
-      );
-
-      // 15.5 faltas de 15 -> Limite excedido
-      expect(
-        AttendanceCalculator.getStatus(equivalentAbsences: 15.5, limit: limit),
-        AttendanceHealthStatus.exceeded,
-      );
-    });
-
-    test('Cálculo de faltas e tempos restantes', () {
-      const limit = 15.0;
-      const periodsPerClass = 2;
-      final totalMissedPeriods = 7;
-      final equivalent = AttendanceCalculator.calculateEquivalentAbsences(totalMissedPeriods, periodsPerClass);
-
-      final remainingAbsences = AttendanceCalculator.calculateRemainingAbsences(limit, equivalent);
-      final remainingPeriods = AttendanceCalculator.calculateRemainingPeriods(limit, periodsPerClass, totalMissedPeriods);
-
-      expect(remainingAbsences, 11.5);
-      expect(remainingPeriods, 23);
+    test('textos', () {
+      expect(AttendanceCalculator.faltas(1), '1 falta');
+      expect(AttendanceCalculator.faltas(3), '3 faltas');
+      expect(AttendanceCalculator.dias(1), '1 dia');
+      expect(AttendanceCalculator.formatPeriodsDescription([1, 2, 3], 3), 'Aula inteira');
+      expect(AttendanceCalculator.formatPeriodsDescription([2], 3), '2º tempo');
+      expect(AttendanceCalculator.formatPeriodsDescription([3, 1], 3), '1º e 3º tempos');
+      expect(AttendanceCalculator.formatPeriodsDescription([1, 2, 4], 4), '1º, 2º, 4º tempos');
     });
   });
 }

@@ -20,7 +20,7 @@ void main() {
       name: 'Programação Orientada a Objeto',
       iconKey: 'code',
       periodsPerClass: 2,
-      absenceLimit: 15.0,
+      absenceLimit: 15,
     );
     await appState.addDiscipline(discipline);
 
@@ -45,9 +45,9 @@ void main() {
     await appState.addAbsence('poo_1', absence);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('0,5'), findsWidgets);
     expect(find.text('1º tempo'), findsOneWidget);
-    expect(find.text('0,5 falta'), findsOneWidget);
+    expect(find.text('1 falta'), findsOneWidget);
+    expect(find.text('Dá pra faltar mais 7 dias (14 faltas).'), findsOneWidget);
 
     expect(appState.themeMode, ThemeMode.light);
     await appState.toggleTheme();

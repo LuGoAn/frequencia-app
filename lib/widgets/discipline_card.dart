@@ -19,10 +19,10 @@ class DisciplineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final used = discipline.equivalentAbsences;
+    final used = discipline.totalMissedPeriods;
     final limit = discipline.absenceLimit;
     final status = AttendanceCalculator.getStatus(
-      equivalentAbsences: used,
+      absences: used,
       limit: limit,
     );
     final color = p.forStatus(status);
@@ -78,7 +78,7 @@ class DisciplineCard extends StatelessWidget {
                       Text.rich(
                         TextSpan(children: [
                           TextSpan(
-                            text: AttendanceCalculator.formatAbsences(used),
+                            text: '$used',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.w300,
@@ -87,7 +87,7 @@ class DisciplineCard extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: ' / ${AttendanceCalculator.formatAbsences(limit)}',
+                            text: ' / $limit',
                             style: TextStyle(
                               fontSize: 14,
                               color: p.inkFaint,
@@ -101,7 +101,11 @@ class DisciplineCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  AbsenceStrip(used: used, limit: limit, color: color),
+                  AbsenceStrip(
+                    used: used / periods,
+                    limit: limit / periods,
+                    color: color,
+                  ),
                   if (status != AttendanceHealthStatus.safe) ...[
                     const SizedBox(height: 10),
                     StatusBadge(status: status),

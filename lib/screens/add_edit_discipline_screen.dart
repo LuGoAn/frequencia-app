@@ -38,11 +38,7 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
     final d = widget.discipline;
     _nameController = TextEditingController(text: d?.name ?? '');
     _limitController = TextEditingController(
-      text: d != null
-          ? (d.absenceLimit == d.absenceLimit.roundToDouble()
-              ? d.absenceLimit.toInt().toString()
-              : d.absenceLimit.toString())
-          : '15',
+      text: d != null ? '${d.absenceLimit}' : '15',
     );
     _selectedIconKey = d?.iconKey ?? 'code';
     _periodsPerClass = d?.periodsPerClass ?? 2;
@@ -90,7 +86,7 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final name = _nameController.text.trim();
-    final limit = double.tryParse(_limitController.text.replaceAll(',', '.')) ?? 15.0;
+    final limit = int.tryParse(_limitController.text.trim()) ?? 15;
     final periods = _periodsPerClass > 0 ? _periodsPerClass : 2;
 
     if (isEditing) {
@@ -277,19 +273,19 @@ class _AddEditDisciplineScreenState extends State<AddEditDisciplineScreen> {
                 ),
               ],
               const SizedBox(height: 28),
-              _label(p, 'Limite de faltas', 'Quantas faltas a disciplina permite no semestre'),
+              _label(p, 'Limite de faltas', 'O número que aparece no sistema da faculdade. Cada tempo perdido conta uma falta'),
               TextFormField(
                 controller: _limitController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: TextInputType.number,
                 style: TextStyle(fontSize: 17, color: p.ink),
                 decoration: const InputDecoration(hintText: '15', suffixText: 'faltas'),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return 'Coloque o limite de faltas';
                   }
-                  final numVal = double.tryParse(val.replaceAll(',', '.'));
+                  final numVal = int.tryParse(val.trim());
                   if (numVal == null || numVal <= 0) {
-                    return 'O limite precisa ser um número maior que zero';
+                    return 'O limite precisa ser um número inteiro maior que zero';
                   }
                   return null;
                 },

@@ -5,7 +5,7 @@ class Discipline {
   final String name;
   final String iconKey;
   final int periodsPerClass;
-  final double absenceLimit;
+  final int absenceLimit;
   final int? totalClasses;
   final List<AbsenceRecord> absences;
   final DateTime createdAt;
@@ -26,17 +26,12 @@ class Discipline {
     return absences.fold(0, (sum, record) => sum + record.periodsCount);
   }
 
-  double get equivalentAbsences {
-    if (periodsPerClass <= 0) return 0.0;
-    return totalMissedPeriods / periodsPerClass;
-  }
-
-  int get totalExpectedClasses {
+  int get totalExpectedPeriods {
     if (totalClasses != null && totalClasses! > 0) {
       return totalClasses!;
     }
-    // sem total informado, assume que o limite é 25% das aulas (regra do MEC)
-    return (absenceLimit * 4).round();
+    // sem total informado, assume que o limite é 25% da carga (regra do MEC)
+    return absenceLimit * 4;
   }
 
   Discipline copyWith({
@@ -44,7 +39,7 @@ class Discipline {
     String? name,
     String? iconKey,
     int? periodsPerClass,
-    double? absenceLimit,
+    int? absenceLimit,
     int? totalClasses,
     List<AbsenceRecord>? absences,
     DateTime? createdAt,
@@ -80,7 +75,7 @@ class Discipline {
       name: json['name'] as String,
       iconKey: json['iconKey'] as String? ?? 'code',
       periodsPerClass: (json['periodsPerClass'] as num?)?.toInt() ?? 2,
-      absenceLimit: (json['absenceLimit'] as num?)?.toDouble() ?? 15.0,
+      absenceLimit: (json['absenceLimit'] as num?)?.round() ?? 15,
       totalClasses: (json['totalClasses'] as num?)?.toInt(),
       absences: (json['absences'] as List<dynamic>?)
               ?.map((e) => AbsenceRecord.fromJson(e as Map<String, dynamic>))

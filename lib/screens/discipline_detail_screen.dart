@@ -82,17 +82,14 @@ class DisciplineDetailScreen extends StatelessWidget {
     );
   }
 
-  String _remainingText(double remaining, int remainingPeriods) {
-    final f = AttendanceCalculator.formatAbsences;
-    if (remaining > 0) {
-      final faltas = AttendanceCalculator.faltaWord(remaining);
-      final tempos = remainingPeriods == 1 ? 'tempo' : 'tempos';
-      return 'Ainda cabem ${f(remaining)} $faltas ($remainingPeriods $tempos).';
+  String _remainingText(int left, int days, int periodsPerClass) {
+    if (left < 0) return 'Passou do limite em ${AttendanceCalculator.faltas(-left)}.';
+    if (left == 0) return 'Você está no limite. Mais uma falta e reprova por frequência.';
+    if (days == 0) {
+      return 'Sobra ${AttendanceCalculator.faltas(left)}, menos que um dia de aula inteiro.';
     }
-    if (remaining == 0) {
-      return 'Você está no limite. Mais uma falta e reprova por frequência.';
-    }
-    return 'Passou do limite em ${f(remaining.abs())} ${AttendanceCalculator.faltaWord(remaining.abs())}.';
+    if (periodsPerClass == 1) return 'Dá pra faltar mais ${AttendanceCalculator.dias(days)}.';
+    return 'Dá pra faltar mais ${AttendanceCalculator.dias(days)} (${AttendanceCalculator.faltas(left)}).';
   }
 
   @override
@@ -109,24 +106,16 @@ class DisciplineDetailScreen extends StatelessWidget {
         }
 
         final p = Palette.of(context);
-        final used = d.equivalentAbsences;
+        final used = d.totalMissedPeriods;
         final limit = d.absenceLimit;
-        final status = AttendanceCalculator.getStatus(
-          equivalentAbsences: used,
-          limit: limit,
-        );
+        final status = AttendanceCalculator.getStatus(absences: used, limit: limit);
         final color = p.forStatus(status);
-        final frequency = AttendanceCalculator.calculateFrequencyPercentage(
-          equivalentAbsences: used,
-          totalExpectedClasses: d.totalExpectedClasses,
+        final frequency = AttendanceCalculator.frequencyPercentage(
+          absences: used,
+          totalPeriods: d.totalExpectedPeriods,
         );
-        final remaining = AttendanceCalculator.calculateRemainingAbsences(limit, used);
-        final remainingPeriods = AttendanceCalculator.calculateRemainingPeriods(
-          limit,
-          d.periodsPerClass,
-          d.totalMissedPeriods,
-        );
-        final f = AttendanceCalculator.formatAbsences;
+        final left = AttendanceCalculator.remaining(limit, used);
+        final days = AttendanceCalculator.remainingDays(limit, used, d.periodsPerClass);
 
         return Scaffold(
           appBar: AppBar(
@@ -170,7 +159,7 @@ class DisciplineDetailScreen extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${d.periodsPerClass} ${d.periodsPerClass == 1 ? 'tempo' : 'tempos'} por aula, '
-                      'limite de ${f(limit)} faltas',
+                      'limite de $limit faltas',
                       style: TextStyle(fontSize: 14, color: p.inkSoft),
                     ),
                   ),
@@ -181,7 +170,7 @@ class DisciplineDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    f(used),
+                    '$used',
                     style: TextStyle(
                       fontSize: 72,
                       fontWeight: FontWeight.w200,
@@ -195,7 +184,7 @@ class DisciplineDetailScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
-                      used == 1 ? 'falta\nde ${f(limit)}' : 'faltas\nde ${f(limit)}',
+                      used == 1 ? 'falta\nde $limit' : 'faltas\nde $limit',
                       style: TextStyle(fontSize: 15, height: 1.25, color: p.inkSoft),
                     ),
                   ),
@@ -208,11 +197,11 @@ class DisciplineDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                _remainingText(remaining, remainingPeriods),
+                _remainingText(left, days, d.periodsPerClass),
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.4,
-                  color: remaining < 0 ? p.red : p.ink,
+                  color: left < 0 ? p.red : p.ink,
                 ),
               ),
               const SizedBox(height: 24),
@@ -223,7 +212,7 @@ class DisciplineDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Cada quadrado é um tempo de aula. Frequência estimada em ${frequency.toStringAsFixed(0)}%.',
+                'Cada quadrado é uma falta, agrupados por dia de aula. Frequência estimada em ${frequency.toStringAsFixed(0)}%.',
                 style: TextStyle(fontSize: 13, height: 1.4, color: p.inkFaint),
               ),
               const SizedBox(height: 28),
@@ -308,10 +297,6 @@ class _AbsenceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final eq = AttendanceCalculator.calculateEquivalentAbsences(
-      record.periodsCount,
-      periodsPerClass,
-    );
     final day = DateFormat('d MMM', 'pt_BR').format(record.date).replaceAll('.', '');
     final weekday = DateFormat('EEEE', 'pt_BR').format(record.date);
 
@@ -350,7 +335,7 @@ class _AbsenceRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${AttendanceCalculator.formatAbsences(eq)} ${AttendanceCalculator.faltaWord(eq)}',
+                    AttendanceCalculator.faltas(record.periodsCount),
                     style: TextStyle(fontSize: 13, color: p.red),
                   ),
                 ],

@@ -89,7 +89,6 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
   Widget build(BuildContext context) {
     final p = Palette.of(context);
     final isEditing = widget.initialRecord != null;
-    final equivalent = AttendanceCalculator.calculateEquivalentAbsences(_selected.length, _n);
     final date = DateFormat("EEEE, d 'de' MMMM", 'pt_BR').format(_date);
 
     return Padding(
@@ -168,8 +167,7 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
           Text(
             _selected.isEmpty
                 ? 'Marque pelo menos um tempo.'
-                : '${_selected.length} de $_n ${_n == 1 ? 'tempo' : 'tempos'}, conta como '
-                    '${AttendanceCalculator.formatAbsences(equivalent)} ${AttendanceCalculator.faltaWord(equivalent)}.',
+                : 'Conta ${AttendanceCalculator.faltas(_selected.length)} nesse dia.',
             style: TextStyle(fontSize: 14, color: p.inkSoft),
           ),
           const SizedBox(height: 24),

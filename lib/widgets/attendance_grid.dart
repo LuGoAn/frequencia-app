@@ -2,10 +2,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-// Um quadrado por tempo que ainda dá pra faltar, agrupados por aula.
-// Tempos além do limite aparecem depois de uma barra vermelha.
+// Um quadrado por falta permitida, agrupados por dia de aula.
+// Faltas além do limite aparecem depois de uma barra vermelha.
 class AttendanceGrid extends StatelessWidget {
-  final double limit;
+  final int limit;
   final int periodsPerClass;
   final int missedPeriods;
 
@@ -19,7 +19,7 @@ class AttendanceGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final allowed = (limit * periodsPerClass).round();
+    final allowed = limit;
     final total = max(allowed, missedPeriods);
     final perGroup = max(1, periodsPerClass);
     final groupCount = (total / perGroup).ceil();
@@ -71,7 +71,7 @@ class AttendanceGrid extends StatelessWidget {
     }
 
     return Semantics(
-      label: '$missedPeriods de $allowed tempos de falta usados',
+      label: '$missedPeriods de $allowed faltas usadas',
       child: ExcludeSemantics(
         child: Wrap(
           spacing: _groupGap,
@@ -84,7 +84,7 @@ class AttendanceGrid extends StatelessWidget {
   }
 }
 
-// Versão compacta pra lista: um traço por falta, preenchido em fração.
+// Versão compacta pra lista: um traço por dia de aula que dá pra faltar.
 class AbsenceStrip extends StatelessWidget {
   final double used;
   final double limit;
