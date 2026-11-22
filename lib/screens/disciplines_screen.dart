@@ -4,6 +4,7 @@ import '../models/discipline.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/discipline_card.dart';
+import '../widgets/update_banner.dart';
 import 'add_edit_discipline_screen.dart';
 import 'discipline_detail_screen.dart';
 
@@ -102,6 +103,13 @@ class DisciplinesScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (appState.availableUpdate != null)
+              SliverToBoxAdapter(
+                child: UpdateBanner(
+                  update: appState.availableUpdate!,
+                  onDismiss: appState.dismissUpdate,
+                ),
+              ),
             if (disciplines.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,

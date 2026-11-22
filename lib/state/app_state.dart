@@ -3,17 +3,24 @@ import '../models/absence_record.dart';
 import '../models/discipline.dart';
 import '../services/attendance_calculator.dart';
 import '../services/storage_service.dart';
+import '../services/update_service.dart';
 
 class AppState extends ChangeNotifier {
   final StorageService _storageService = StorageService();
 
+  final UpdateService _updateService;
+
+  AppState({UpdateService? updateService}) : _updateService = updateService ?? UpdateService();
+
   List<Discipline> _disciplines = [];
+  AppUpdate? _update;
   ThemeMode _themeMode = ThemeMode.light;
   bool _isInitialized = false;
 
   List<Discipline> get disciplines => List.unmodifiable(_disciplines);
   ThemeMode get themeMode => _themeMode;
   bool get isInitialized => _isInitialized;
+  AppUpdate? get availableUpdate => _update;
 
   int get totalDisciplines => _disciplines.length;
 
@@ -46,6 +53,23 @@ class AppState extends ChangeNotifier {
     _disciplines = await _storageService.loadDisciplines();
     _isInitialized = true;
     notifyListeners();
+  }
+
+  Future<void> checkForUpdate() async {
+    final update = await _updateService.check();
+    if (update == null) return;
+    // se a pessoa já fechou o aviso dessa versão, não mostra de novo
+    if (await _storageService.loadDismissedUpdate() == update.version) return;
+    _update = update;
+    notifyListeners();
+  }
+
+  Future<void> dismissUpdate() async {
+    final update = _update;
+    if (update == null) return;
+    _update = null;
+    notifyListeners();
+    await _storageService.saveDismissedUpdate(update.version);
   }
 
   Future<void> toggleTheme() async {

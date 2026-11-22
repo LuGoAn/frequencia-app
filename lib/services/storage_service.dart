@@ -6,6 +6,7 @@ import '../models/discipline.dart';
 class StorageService {
   static const String _disciplinesKey = 'disciplines_data_v1';
   static const String _themeModeKey = 'app_theme_mode_v1';
+  static const String _dismissedUpdateKey = 'dismissed_update_version';
 
   Future<List<Discipline>> loadDisciplines() async {
     try {
@@ -61,6 +62,16 @@ class StorageService {
       debugPrint('Error saving theme mode: $e');
       return false;
     }
+  }
+
+  Future<String?> loadDismissedUpdate() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_dismissedUpdateKey);
+  }
+
+  Future<void> saveDismissedUpdate(String version) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_dismissedUpdateKey, version);
   }
 
   Future<String> exportBackup(List<Discipline> disciplines) async {

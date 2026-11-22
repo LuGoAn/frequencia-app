@@ -13,6 +13,7 @@ void main() async {
   await appState.init();
 
   runApp(FrequenciaApp(appState: appState));
+  appState.checkForUpdate();
 }
 
 class FrequenciaApp extends StatelessWidget {
