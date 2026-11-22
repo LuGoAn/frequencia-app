@@ -8,11 +8,13 @@ import 'attendance_grid.dart';
 class DisciplineCard extends StatelessWidget {
   final Discipline discipline;
   final VoidCallback onTap;
+  final VoidCallback onQuickAdd;
 
   const DisciplineCard({
     super.key,
     required this.discipline,
     required this.onTap,
+    required this.onQuickAdd,
   });
 
   @override
@@ -105,6 +107,8 @@ class DisciplineCard extends StatelessWidget {
                           fontFeatures: [FontFeature.tabularFigures()],
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      _QuickAddButton(onPressed: onQuickAdd),
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -113,6 +117,49 @@ class DisciplineCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// "+1" porque soma direto no contador do lado. X ou check dariam a ideia de excluir/concluir.
+class _QuickAddButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _QuickAddButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    return Tooltip(
+      message: 'Registrar falta de hoje',
+      child: Semantics(
+        button: true,
+        label: 'Registrar falta de hoje',
+        child: Material(
+          color: p.cellEmpty,
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 44,
+              height: 36,
+              child: Center(
+                child: ExcludeSemantics(
+                  child: Text(
+                    '+1',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: p.ink,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

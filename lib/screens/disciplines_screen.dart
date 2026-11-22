@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/absence_record.dart';
+import '../models/discipline.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/discipline_card.dart';
@@ -13,6 +15,31 @@ class DisciplinesScreen extends StatelessWidget {
   void _openNew(BuildContext context) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => AddEditDisciplineScreen(appState: appState),
+    ));
+  }
+
+  Future<void> _quickAdd(BuildContext context, Discipline d) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final now = DateTime.now();
+    final already = d.absences.any(
+      (a) => a.date.year == now.year && a.date.month == now.month && a.date.day == now.day,
+    );
+    messenger.hideCurrentSnackBar();
+    if (already) {
+      messenger.showSnackBar(SnackBar(
+        content: Text('Já tem falta registrada hoje em ${d.name}.'),
+      ));
+      return;
+    }
+
+    final record = AbsenceRecord(id: now.millisecondsSinceEpoch.toString(), date: now);
+    await appState.addAbsence(d.id, record);
+    messenger.showSnackBar(SnackBar(
+      content: Text('Falta de hoje registrada em ${d.name}.'),
+      action: SnackBarAction(
+        label: 'Desfazer',
+        onPressed: () => appState.deleteAbsence(d.id, record.id),
+      ),
     ));
   }
 
@@ -119,6 +146,7 @@ class DisciplinesScreen extends StatelessWidget {
                   final discipline = disciplines[index - 1];
                   return DisciplineCard(
                     discipline: discipline,
+                    onQuickAdd: () => _quickAdd(context, discipline),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => DisciplineDetailScreen(
                         disciplineId: discipline.id,

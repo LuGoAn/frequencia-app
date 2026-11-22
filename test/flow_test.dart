@@ -73,4 +73,49 @@ void main() {
     final texts = tester.widgetList<EditableText>(find.byType(EditableText)).map((e) => e.controller.text);
     expect(texts, contains('5'));
   });
+
+  testWidgets('registra falta rápida pela lista e desfaz', (tester) async {
+    final appState = AppState();
+    await appState.init();
+    await appState.addDiscipline(Discipline(
+      id: 'calc',
+      name: 'Cálculo II',
+      iconKey: 'functions',
+      absenceLimit: 8,
+    ));
+
+    await tester.pumpWidget(FrequenciaApp(appState: appState));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('+1'));
+    await tester.pumpAndSettle();
+    expect(appState.disciplines.single.missedDays, 1);
+    expect(find.text('Falta de hoje registrada em Cálculo II.'), findsOneWidget);
+    expect(find.text('Dá pra faltar mais 7 dias'), findsOneWidget);
+
+    await tester.tap(find.text('+1'));
+    await tester.pumpAndSettle();
+    expect(appState.disciplines.single.missedDays, 1);
+    expect(find.text('Já tem falta registrada hoje em Cálculo II.'), findsOneWidget);
+  });
+
+  testWidgets('desfazer tira a falta rápida', (tester) async {
+    final appState = AppState();
+    await appState.init();
+    await appState.addDiscipline(Discipline(
+      id: 'calc',
+      name: 'Cálculo II',
+      iconKey: 'functions',
+      absenceLimit: 8,
+    ));
+
+    await tester.pumpWidget(FrequenciaApp(appState: appState));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('+1'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+    expect(appState.disciplines.single.missedDays, 0);
+  });
 }
