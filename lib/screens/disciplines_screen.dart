@@ -95,8 +95,8 @@ class DisciplinesScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Adicione as matérias do semestre com o limite de faltas de cada uma. '
-                        'Depois é só marcar os tempos que você perder.',
+                        'Adicione as matérias do semestre com quantos dias dá pra faltar em cada uma. '
+                        'Depois é só registrar os dias que você faltar.',
                         style: TextStyle(fontSize: 15, height: 1.45, color: p.inkSoft),
                       ),
                       const SizedBox(height: 24),
