@@ -2,7 +2,7 @@
 
 App Android pra controlar faltas da faculdade. Fiz porque eu vivia fazendo conta de cabeça pra saber quantos dias ainda podia faltar em cada matéria, e às vezes errava.
 
-Funciona offline e não tem login. Os dados ficam só no celular.
+Funciona offline e não tem login. Os dados ficam só no celular. A única coisa que usa internet é a checagem de versão nova: quando sai uma release aqui no GitHub, o app mostra um aviso com o link pro APK.
 
 <p align="center">
   <img src="docs/screenshots/lista.png" alt="Lista de disciplinas com as faltas de cada uma" width="32%">
@@ -42,7 +42,7 @@ flutter test
 ```text
 lib/
 ├── models/      disciplina e registro de falta
-├── services/    cálculo das faltas, sugestão de ícone e armazenamento
+├── services/    cálculo das faltas, sugestão de ícone, armazenamento e checagem de versão
 ├── state/       estado do app (ChangeNotifier)
 ├── screens/     lista, detalhe e cadastro de disciplina
 ├── widgets/     grade de faltas, linha da lista, sheets e o diálogo de dias

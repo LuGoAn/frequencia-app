@@ -2,7 +2,7 @@ name: frequencia_app
 description: "Controle pessoal de faltas por tempo de aula."
 publish_to: 'none'
 
-version: 1.2.0+3
+version: 1.2.1+4
 
 environment:
   sdk: ^3.13.1
