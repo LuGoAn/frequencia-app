@@ -7,12 +7,12 @@ Funciona offline e não tem login. Os dados ficam só no celular.
 <p align="center">
   <img src="docs/screenshots/lista.png" alt="Lista de disciplinas com as faltas de cada uma" width="32%">
   <img src="docs/screenshots/detalhe.png" alt="Detalhe de uma disciplina com os dias de falta e o histórico" width="32%">
-  <img src="docs/screenshots/registrar.png" alt="Registro de falta" width="32%">
+  <img src="docs/screenshots/dias.png" alt="Calculando os dias a partir do limite em faltas do sistema" width="32%">
 </p>
 
 ## O que ele faz
 
-Você cadastra cada disciplina com quantos dias pode faltar no semestre. Quando faltar, abre a disciplina, toca em "Registrar falta" e confirma a data (já vem o dia de hoje). Na tela da disciplina aparece um quadrado por dia que dá pra faltar, e os que já foram usados ficam vermelhos. Quando passa de 70% do limite a disciplina fica amarela na lista, e quando estoura fica vermelha.
+Você cadastra cada disciplina com quantos dias pode faltar no semestre. Quando faltar, toca no +1 da disciplina na lista e a falta de hoje já fica registrada. Se for de outro dia, abre a disciplina e usa "Registrar falta", que deixa escolher a data. Na tela da disciplina aparece um quadrado por dia que dá pra faltar, e os que já foram usados ficam vermelhos. Quando passa de 70% do limite a disciplina fica amarela na lista, e quando estoura fica vermelha.
 
 Na minha faculdade o sistema mostra o limite em faltas por tempo de aula: Banco de Dados aparece como 0/15, mas como são 3 tempos por dia, na prática são 5 dias. Se for o seu caso, no cadastro tem um "Não sabe quantos dias?" que faz essa conta.
 
@@ -20,7 +20,7 @@ O ícone da disciplina é sugerido pelo nome enquanto você digita (Banco de Dad
 
 ## Instalar
 
-Baixe o `app-release.apk` na página de [releases](https://github.com/LuGoAn/frequencia-app/releases) direto pelo celular e abra. O Android vai pedir pra liberar a instalação de fontes desconhecidas.
+Baixe o `frequencia-x.y.z.apk` da última versão na página de [releases](https://github.com/LuGoAn/frequencia-app/releases) direto pelo celular e abra. O Android vai pedir pra liberar a instalação de fontes desconhecidas.
 
 ## Rodar o projeto
 
