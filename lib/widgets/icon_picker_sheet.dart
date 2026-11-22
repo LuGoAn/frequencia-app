@@ -29,14 +29,7 @@ class IconPickerSheet extends StatefulWidget {
 }
 
 class _IconPickerSheetState extends State<IconPickerSheet> {
-  static const _categories = [
-    'Todos',
-    'Tecnologia',
-    'Inteligência & Robótica',
-    'Matemática & Ciências',
-    'Acadêmico & Projetos',
-    'Geral & Humanas',
-  ];
+  static const _categories = ['Todos', ...IconService.categories];
 
   String _category = 'Todos';
 

@@ -73,23 +73,16 @@ class DisciplineDetailScreen extends StatelessWidget {
   void _editAbsence(BuildContext context, AbsenceRecord record, Discipline d) {
     RecordAbsenceSheet.show(
       context: context,
-      periodsPerClass: d.periodsPerClass,
       initialRecord: record,
-      onSave: (date, periods) => appState.updateAbsence(
-        d.id,
-        record.copyWith(date: date, missedPeriods: periods),
-      ),
+      takenDates: [for (final a in d.absences) if (a.id != record.id) a.date],
+      onSave: (date) => appState.updateAbsence(d.id, record.copyWith(date: date)),
     );
   }
 
-  String _remainingText(int left, int days, int periodsPerClass) {
-    if (left < 0) return 'Passou do limite em ${AttendanceCalculator.faltas(-left)}.';
+  String _remainingText(int left) {
+    if (left > 0) return 'Dá pra faltar mais ${AttendanceCalculator.dias(left)}.';
     if (left == 0) return 'Você está no limite. Mais uma falta e reprova por frequência.';
-    if (days == 0) {
-      return 'Sobra ${AttendanceCalculator.faltas(left)}, menos que um dia de aula inteiro.';
-    }
-    if (periodsPerClass == 1) return 'Dá pra faltar mais ${AttendanceCalculator.dias(days)}.';
-    return 'Dá pra faltar mais ${AttendanceCalculator.dias(days)} (${AttendanceCalculator.faltas(left)}).';
+    return 'Passou do limite em ${AttendanceCalculator.dias(-left)}.';
   }
 
   @override
@@ -106,16 +99,15 @@ class DisciplineDetailScreen extends StatelessWidget {
         }
 
         final p = Palette.of(context);
-        final used = d.totalMissedPeriods;
+        final used = d.missedDays;
         final limit = d.absenceLimit;
-        final status = AttendanceCalculator.getStatus(absences: used, limit: limit);
+        final status = AttendanceCalculator.getStatus(missed: used, limit: limit);
         final color = p.forStatus(status);
         final frequency = AttendanceCalculator.frequencyPercentage(
-          absences: used,
-          totalPeriods: d.totalExpectedPeriods,
+          missed: used,
+          totalClasses: d.totalExpectedClasses,
         );
         final left = AttendanceCalculator.remaining(limit, used);
-        final days = AttendanceCalculator.remainingDays(limit, used, d.periodsPerClass);
 
         return Scaffold(
           appBar: AppBar(
@@ -158,8 +150,7 @@ class DisciplineDetailScreen extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${d.periodsPerClass} ${d.periodsPerClass == 1 ? 'tempo' : 'tempos'} por aula, '
-                      'limite de $limit faltas',
+                      'Pode faltar até ${AttendanceCalculator.dias(limit)}',
                       style: TextStyle(fontSize: 14, color: p.inkSoft),
                     ),
                   ),
@@ -184,7 +175,7 @@ class DisciplineDetailScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Text(
-                      used == 1 ? 'falta\nde $limit' : 'faltas\nde $limit',
+                      '${used == 1 ? 'dia' : 'dias'} de falta\nde $limit',
                       style: TextStyle(fontSize: 15, height: 1.25, color: p.inkSoft),
                     ),
                   ),
@@ -197,7 +188,7 @@ class DisciplineDetailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               Text(
-                _remainingText(left, days, d.periodsPerClass),
+                _remainingText(left),
                 style: TextStyle(
                   fontSize: 15,
                   height: 1.4,
@@ -205,14 +196,10 @@ class DisciplineDetailScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              AttendanceGrid(
-                limit: limit,
-                periodsPerClass: d.periodsPerClass,
-                missedPeriods: d.totalMissedPeriods,
-              ),
+              AttendanceGrid(limit: limit, missed: used),
               const SizedBox(height: 12),
               Text(
-                'Cada quadrado é uma falta, agrupados por dia de aula. Frequência estimada em ${frequency.toStringAsFixed(0)}%.',
+                'Cada quadrado é um dia que dá pra faltar. Frequência estimada em ${frequency.toStringAsFixed(0)}%.',
                 style: TextStyle(fontSize: 13, height: 1.4, color: p.inkFaint),
               ),
               const SizedBox(height: 28),
@@ -221,13 +208,12 @@ class DisciplineDetailScreen extends StatelessWidget {
                 label: const Text('Registrar falta'),
                 onPressed: () => RecordAbsenceSheet.show(
                   context: context,
-                  periodsPerClass: d.periodsPerClass,
-                  onSave: (date, periods) => appState.addAbsence(
+                  takenDates: [for (final a in d.absences) a.date],
+                  onSave: (date) => appState.addAbsence(
                     d.id,
                     AbsenceRecord(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       date: date,
-                      missedPeriods: periods,
                     ),
                   ),
                 ),
@@ -267,7 +253,6 @@ class DisciplineDetailScreen extends StatelessWidget {
                 for (final record in d.absences) ...[
                   _AbsenceRow(
                     record: record,
-                    periodsPerClass: d.periodsPerClass,
                     onEdit: () => _editAbsence(context, record, d),
                     onDelete: () => _confirmDeleteAbsence(context, record, d),
                   ),
@@ -283,13 +268,11 @@ class DisciplineDetailScreen extends StatelessWidget {
 
 class _AbsenceRow extends StatelessWidget {
   final AbsenceRecord record;
-  final int periodsPerClass;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _AbsenceRow({
     required this.record,
-    required this.periodsPerClass,
     required this.onEdit,
     required this.onDelete,
   });
@@ -297,17 +280,16 @@ class _AbsenceRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final day = DateFormat('d MMM', 'pt_BR').format(record.date).replaceAll('.', '');
+    final day = DateFormat("d 'de' MMMM", 'pt_BR').format(record.date);
     final weekday = DateFormat('EEEE', 'pt_BR').format(record.date);
 
     return InkWell(
       onTap: onEdit,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            SizedBox(
-              width: 76,
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -315,28 +297,10 @@ class _AbsenceRow extends StatelessWidget {
                     day,
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: p.ink),
                   ),
-                  Text(
-                    weekday.split('-').first,
-                    style: TextStyle(fontSize: 12, color: p.inkFaint),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    AttendanceCalculator.formatPeriodsDescription(
-                      record.missedPeriods,
-                      periodsPerClass,
-                    ),
-                    style: TextStyle(fontSize: 15, color: p.ink),
-                  ),
                   const SizedBox(height: 2),
                   Text(
-                    AttendanceCalculator.faltas(record.periodsCount),
-                    style: TextStyle(fontSize: 13, color: p.red),
+                    weekday,
+                    style: TextStyle(fontSize: 13, color: p.inkFaint),
                   ),
                 ],
               ),
@@ -346,7 +310,7 @@ class _AbsenceRow extends StatelessWidget {
               tooltip: 'Opções',
               onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
               itemBuilder: (_) => const [
-                PopupMenuItem(value: 'edit', child: Text('Editar')),
+                PopupMenuItem(value: 'edit', child: Text('Mudar data')),
                 PopupMenuItem(value: 'delete', child: Text('Remover')),
               ],
             ),

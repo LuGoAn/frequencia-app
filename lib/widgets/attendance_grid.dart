@@ -2,92 +2,66 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-// Um quadrado por falta permitida, agrupados por dia de aula.
-// Faltas além do limite aparecem depois de uma barra vermelha.
+// Um quadrado por dia que dá pra faltar. Dias além do limite aparecem depois de uma barra vermelha.
 class AttendanceGrid extends StatelessWidget {
   final int limit;
-  final int periodsPerClass;
-  final int missedPeriods;
+  final int missed;
 
   const AttendanceGrid({
     super.key,
     required this.limit,
-    required this.periodsPerClass,
-    required this.missedPeriods,
+    required this.missed,
   });
+
+  static const _gap = 6.0;
 
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final allowed = limit;
-    final total = max(allowed, missedPeriods);
-    final perGroup = max(1, periodsPerClass);
-    final groupCount = (total / perGroup).ceil();
+    final total = max(limit, missed);
 
     return LayoutBuilder(builder: (context, constraints) {
       final w = constraints.maxWidth;
-      // quadrado grande quando cabe, e linhas com a mesma quantidade de aulas
-      double groupWidth(double c) => perGroup * c + (perGroup - 1) * _cellGap;
-      final maxPerRow = max(1, ((w + _groupGap) / (groupWidth(16) + _groupGap)).floor());
-      final rows = (groupCount / maxPerRow).ceil();
-      final perRow = max(1, (groupCount / max(1, rows)).ceil());
-      final fit = (w - (perRow - 1) * _groupGap - perRow * (perGroup - 1) * _cellGap) /
-          (perRow * perGroup);
-      final cellSize = (fit - 0.1).clamp(10.0, 30.0);
-      return _build(p, allowed, total, perGroup, cellSize);
-    });
-  }
+      // linhas com a mesma quantidade de quadrados, e o maior tamanho que couber
+      final maxPerRow = max(1, ((w + _gap) / (26 + _gap)).floor());
+      final rows = max(1, (total / maxPerRow).ceil());
+      final perRow = max(1, (total / rows).ceil());
+      final size = ((w - (perRow - 1) * _gap) / perRow - 0.1).clamp(14.0, 40.0);
 
-  static const _cellGap = 3.0;
-  static const _groupGap = 9.0;
-
-  Widget _build(Palette p, int allowed, int total, int perGroup, double cellSize) {
-    final groups = <Widget>[];
-    for (var start = 0; start < total; start += perGroup) {
-      final end = min(start + perGroup, total);
-      if (start == allowed && missedPeriods > allowed) {
-        groups.add(Container(
-          width: 3,
-          height: cellSize + 6,
-          margin: const EdgeInsets.symmetric(horizontal: 2),
-          color: p.red,
+      final cells = <Widget>[];
+      for (var i = 0; i < total; i++) {
+        if (i == limit && missed > limit) {
+          cells.add(Container(width: 3, height: size + 6, color: p.red));
+        }
+        cells.add(Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: i < missed ? p.red : p.cellEmpty,
+            borderRadius: BorderRadius.circular(size / 6),
+          ),
         ));
       }
-      groups.add(Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = start; i < end; i++)
-            Container(
-              width: cellSize,
-              height: cellSize,
-              margin: EdgeInsets.only(right: i < end - 1 ? _cellGap : 0),
-              decoration: BoxDecoration(
-                color: i < missedPeriods ? p.red : p.cellEmpty,
-                borderRadius: BorderRadius.circular(cellSize / 6),
-              ),
-            ),
-        ],
-      ));
-    }
 
-    return Semantics(
-      label: '$missedPeriods de $allowed faltas usadas',
-      child: ExcludeSemantics(
-        child: Wrap(
-          spacing: _groupGap,
-          runSpacing: _groupGap,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: groups,
+      return Semantics(
+        label: '$missed de $limit dias de falta usados',
+        child: ExcludeSemantics(
+          child: Wrap(
+            spacing: _gap,
+            runSpacing: _gap,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: cells,
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
-// Versão compacta pra lista: um traço por dia de aula que dá pra faltar.
+// Versão compacta pra lista: um traço por dia.
 class AbsenceStrip extends StatelessWidget {
-  final double used;
-  final double limit;
+  final int used;
+  final int limit;
   final Color color;
 
   const AbsenceStrip({
@@ -100,9 +74,8 @@ class AbsenceStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final slots = limit.ceil();
 
-    if (slots <= 0 || slots > 40) {
+    if (limit <= 0 || limit > 40) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(2),
         child: LinearProgressIndicator(
@@ -116,24 +89,14 @@ class AbsenceStrip extends StatelessWidget {
 
     return Row(
       children: [
-        for (var i = 0; i < slots; i++)
+        for (var i = 0; i < limit; i++)
           Expanded(
             child: Container(
               height: 6,
-              margin: EdgeInsets.only(right: i < slots - 1 ? 2 : 0),
+              margin: EdgeInsets.only(right: i < limit - 1 ? 3 : 0),
               decoration: BoxDecoration(
-                color: p.cellEmpty,
+                color: i < used ? color : p.cellEmpty,
                 borderRadius: BorderRadius.circular(1.5),
-              ),
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: (used - i).clamp(0.0, 1.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(1.5),
-                  ),
-                ),
               ),
             ),
           ),

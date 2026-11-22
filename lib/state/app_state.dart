@@ -21,8 +21,8 @@ class AppState extends ChangeNotifier {
     if (_disciplines.isEmpty) return 100.0;
     final total = _disciplines.fold<double>(0.0, (sum, d) {
       final pct = AttendanceCalculator.frequencyPercentage(
-        absences: d.totalMissedPeriods,
-        totalPeriods: d.totalExpectedPeriods,
+        missed: d.missedDays,
+        totalClasses: d.totalExpectedClasses,
       );
       return sum + pct;
     });
@@ -32,7 +32,7 @@ class AppState extends ChangeNotifier {
   int get disciplinesAtRisk {
     return _disciplines.where((d) {
       final status = AttendanceCalculator.getStatus(
-        absences: d.totalMissedPeriods,
+        missed: d.missedDays,
         limit: d.absenceLimit,
       );
       return status == AttendanceHealthStatus.warning ||

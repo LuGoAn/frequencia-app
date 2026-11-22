@@ -1,10 +1,10 @@
 import 'absence_record.dart';
 
+// Tudo em dias: cada registro é um dia de falta e o limite é quantos dias pode faltar.
 class Discipline {
   final String id;
   final String name;
   final String iconKey;
-  final int periodsPerClass;
   final int absenceLimit;
   final int? totalClasses;
   final List<AbsenceRecord> absences;
@@ -14,7 +14,6 @@ class Discipline {
     required this.id,
     required this.name,
     required this.iconKey,
-    required this.periodsPerClass,
     required this.absenceLimit,
     this.totalClasses,
     List<AbsenceRecord>? absences,
@@ -22,15 +21,13 @@ class Discipline {
   })  : absences = absences ?? [],
         createdAt = createdAt ?? DateTime.now();
 
-  int get totalMissedPeriods {
-    return absences.fold(0, (sum, record) => sum + record.periodsCount);
-  }
+  int get missedDays => absences.length;
 
-  int get totalExpectedPeriods {
+  int get totalExpectedClasses {
     if (totalClasses != null && totalClasses! > 0) {
       return totalClasses!;
     }
-    // sem total informado, assume que o limite é 25% da carga (regra do MEC)
+    // sem total informado, assume que o limite é 25% das aulas (regra do MEC)
     return absenceLimit * 4;
   }
 
@@ -38,7 +35,6 @@ class Discipline {
     String? id,
     String? name,
     String? iconKey,
-    int? periodsPerClass,
     int? absenceLimit,
     int? totalClasses,
     List<AbsenceRecord>? absences,
@@ -48,7 +44,6 @@ class Discipline {
       id: id ?? this.id,
       name: name ?? this.name,
       iconKey: iconKey ?? this.iconKey,
-      periodsPerClass: periodsPerClass ?? this.periodsPerClass,
       absenceLimit: absenceLimit ?? this.absenceLimit,
       totalClasses: totalClasses ?? this.totalClasses,
       absences: absences ?? List.from(this.absences),
@@ -61,7 +56,6 @@ class Discipline {
       'id': id,
       'name': name,
       'iconKey': iconKey,
-      'periodsPerClass': periodsPerClass,
       'absenceLimit': absenceLimit,
       'totalClasses': totalClasses,
       'absences': absences.map((a) => a.toJson()).toList(),
@@ -73,8 +67,7 @@ class Discipline {
     return Discipline(
       id: json['id'] as String,
       name: json['name'] as String,
-      iconKey: json['iconKey'] as String? ?? 'code',
-      periodsPerClass: (json['periodsPerClass'] as num?)?.toInt() ?? 2,
+      iconKey: json['iconKey'] as String? ?? 'bookmark',
       absenceLimit: (json['absenceLimit'] as num?)?.round() ?? 15,
       totalClasses: (json['totalClasses'] as num?)?.toInt(),
       absences: (json['absences'] as List<dynamic>?)

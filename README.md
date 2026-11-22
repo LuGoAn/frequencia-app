@@ -1,24 +1,22 @@
 # Frequência
 
-App Android pra controlar faltas da faculdade. Fiz porque lá a chamada é por tempo de aula e não por dia. Banco de Dados tem 3 tempos, então faltar um dia vira 3 faltas no sistema, e o limite de 15 na verdade são só 5 dias. Eu vivia fazendo essa conta de cabeça pra saber quantos dias ainda podia faltar.
+App Android pra controlar faltas da faculdade. Fiz porque eu vivia fazendo conta de cabeça pra saber quantos dias ainda podia faltar em cada matéria, e às vezes errava.
 
 Funciona offline e não tem login. Os dados ficam só no celular.
 
 <p align="center">
   <img src="docs/screenshots/lista.png" alt="Lista de disciplinas com as faltas de cada uma" width="32%">
-  <img src="docs/screenshots/detalhe.png" alt="Detalhe de Banco de Dados II com a grade de faltas e o histórico" width="32%">
-  <img src="docs/screenshots/registrar.png" alt="Registro de falta com a aula inteira marcada" width="32%">
+  <img src="docs/screenshots/detalhe.png" alt="Detalhe de uma disciplina com os dias de falta e o histórico" width="32%">
+  <img src="docs/screenshots/registrar.png" alt="Registro de falta" width="32%">
 </p>
 
 ## O que ele faz
 
-Você cadastra cada disciplina com quantos tempos ela tem por aula (1, 2, 3 ou outro número) e o limite de faltas do jeito que aparece no sistema da faculdade. Quando faltar, abre a disciplina, toca em "Registrar falta" e marca quais tempos perdeu. Por padrão já vem a aula inteira marcada, que é o caso mais comum. Se chegou atrasado e perdeu só o primeiro tempo, desmarca os outros.
+Você cadastra cada disciplina com quantos dias pode faltar no semestre. Quando faltar, abre a disciplina, toca em "Registrar falta" e confirma a data (já vem o dia de hoje). Na tela da disciplina aparece um quadrado por dia que dá pra faltar, e os que já foram usados ficam vermelhos. Quando passa de 70% do limite a disciplina fica amarela na lista, e quando estoura fica vermelha.
 
-Cada tempo perdido conta uma falta, igual no sistema. Com isso o app mostra quantos dias de aula ainda dá pra faltar: numa matéria de 3 tempos com 8 faltas de 15, sobram 7 faltas, que dão 2 dias inteiros.
+Na minha faculdade o sistema mostra o limite em faltas por tempo de aula: Banco de Dados aparece como 0/15, mas como são 3 tempos por dia, na prática são 5 dias. Se for o seu caso, no cadastro tem um "Não sabe quantos dias?" que faz essa conta.
 
-Na tela da disciplina aparece uma grade com um quadrado por falta permitida, agrupados por dia de aula. O que já foi usado fica vermelho. Quando passa de 70% do limite a disciplina fica amarela na lista, e quando estoura fica vermelha.
-
-O ícone da disciplina é sugerido pelo nome enquanto você digita (Banco de Dados vira um ícone de banco, Cálculo vira um somatório etc.), mas dá pra trocar. Tem tema claro e escuro.
+O ícone da disciplina é sugerido pelo nome enquanto você digita (Banco de Dados vira um ícone de banco, Anatomia vira um boneco, Direito Civil vira um martelo etc.), mas dá pra trocar. Tem ícone pra computação, engenharia, saúde, direito, negócios, artes e humanas. Tem tema claro e escuro.
 
 ## Instalar
 
@@ -33,7 +31,7 @@ flutter pub get
 flutter run
 ```
 
-Os testes cobrem o cálculo das faltas e um fluxo de cadastro:
+Os testes cobrem o cálculo das faltas, a sugestão de ícone e o fluxo de cadastro:
 
 ```bash
 flutter test
@@ -47,7 +45,7 @@ lib/
 ├── services/    cálculo das faltas, sugestão de ícone e armazenamento
 ├── state/       estado do app (ChangeNotifier)
 ├── screens/     lista, detalhe e cadastro de disciplina
-├── widgets/     grade de tempos, linha da lista e os bottom sheets
+├── widgets/     grade de faltas, linha da lista, sheets e o diálogo de dias
 └── theme/       cores e tema
 ```
 

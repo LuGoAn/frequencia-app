@@ -4,7 +4,6 @@ import '../services/attendance_calculator.dart';
 import '../services/icon_service.dart';
 import '../theme/app_colors.dart';
 import 'attendance_grid.dart';
-import 'status_badge.dart';
 
 class DisciplineCard extends StatelessWidget {
   final Discipline discipline;
@@ -19,14 +18,19 @@ class DisciplineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Palette.of(context);
-    final used = discipline.totalMissedPeriods;
+    final used = discipline.missedDays;
     final limit = discipline.absenceLimit;
-    final status = AttendanceCalculator.getStatus(
-      absences: used,
-      limit: limit,
-    );
+    final status = AttendanceCalculator.getStatus(missed: used, limit: limit);
     final color = p.forStatus(status);
-    final periods = discipline.periodsPerClass;
+    final left = limit - used;
+    final String subtitle;
+    if (left > 0) {
+      subtitle = 'Dá pra faltar mais ${AttendanceCalculator.dias(left)}';
+    } else if (left == 0) {
+      subtitle = 'No limite, não dá pra faltar mais';
+    } else {
+      subtitle = 'Passou do limite em ${AttendanceCalculator.dias(-left)}';
+    }
 
     return InkWell(
       onTap: onTap,
@@ -68,8 +72,11 @@ class DisciplineCard extends StatelessWidget {
                             ),
                             const SizedBox(height: 3),
                             Text(
-                              '$periods ${periods == 1 ? 'tempo' : 'tempos'} por aula',
-                              style: TextStyle(fontSize: 13, color: p.inkFaint),
+                              subtitle,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: status == AttendanceHealthStatus.safe ? p.inkFaint : color,
+                              ),
                             ),
                           ],
                         ),
@@ -101,15 +108,7 @@ class DisciplineCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  AbsenceStrip(
-                    used: used / periods,
-                    limit: limit / periods,
-                    color: color,
-                  ),
-                  if (status != AttendanceHealthStatus.safe) ...[
-                    const SizedBox(height: 10),
-                    StatusBadge(status: status),
-                  ],
+                  AbsenceStrip(used: used, limit: limit, color: color),
                 ],
               ),
             ),
