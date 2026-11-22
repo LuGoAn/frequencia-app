@@ -1,7 +1,7 @@
 class AbsenceRecord {
   final String id;
   final DateTime date;
-  final List<int> missedPeriods; // e.g. [1], [2], or [1, 2] (1-based period numbers)
+  final List<int> missedPeriods;
   final String? note;
   final DateTime createdAt;
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/discipline.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
 import '../widgets/discipline_card.dart';
@@ -9,268 +8,138 @@ import 'discipline_detail_screen.dart';
 class DisciplinesScreen extends StatelessWidget {
   final AppState appState;
 
-  const DisciplinesScreen({
-    super.key,
-    required this.appState,
-  });
+  const DisciplinesScreen({super.key, required this.appState});
+
+  void _openNew(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => AddEditDisciplineScreen(appState: appState),
+    ));
+  }
+
+  String _summary() {
+    final n = appState.totalDisciplines;
+    final atRisk = appState.disciplinesAtRisk;
+    final count = '$n ${n == 1 ? 'disciplina' : 'disciplinas'}';
+    if (atRisk == 0) return '$count, tudo em dia';
+    return '$count, $atRisk perto do limite';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final p = Palette.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final disciplines = appState.disciplines;
 
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
           slivers: [
-            // Minimal Header
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 12),
+                padding: const EdgeInsets.fromLTRB(20, 24, 8, 20),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Frequência',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.8,
-                            color: isDark
-                                ? AppColors.darkTextPrimary
-                                : AppColors.lightTextPrimary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Frequência',
+                            style: TextStyle(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w300,
+                              letterSpacing: -0.5,
+                              color: p.ink,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Controle pessoal de faltas',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary,
-                          ),
-                        ),
-                      ],
+                          if (disciplines.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _summary(),
+                              style: TextStyle(fontSize: 15, color: p.inkSoft),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-
-                    // Top Action: Theme Toggle
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.darkSurfaceElevated
-                            : AppColors.lightSurface,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : AppColors.lightBorder,
-                        ),
+                    IconButton(
+                      icon: Icon(
+                        isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                        color: p.inkSoft,
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                          size: 20,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
-                        tooltip: isDark ? 'Ativar tema claro' : 'Ativar tema escuro',
-                        onPressed: () => appState.toggleTheme(),
-                      ),
+                      tooltip: isDark ? 'Usar tema claro' : 'Usar tema escuro',
+                      onPressed: appState.toggleTheme,
                     ),
                   ],
                 ),
               ),
             ),
-
-            // Subtle summary pill when disciplines exist
-            if (disciplines.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface
-                              : AppColors.lightSurface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                          ),
-                        ),
-                        child: Text(
-                          '${disciplines.length} ${disciplines.length == 1 ? 'disciplina' : 'disciplinas'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurface
-                              : AppColors.lightSurface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkBorder
-                                : AppColors.lightBorder,
-                          ),
-                        ),
-                        child: Text(
-                          'Média ${appState.averageFrequency.toStringAsFixed(0)}%',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark
-                                ? AppColors.primaryLight
-                                : AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-            // Content: Empty State or Discipline Cards List
             if (disciplines.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Padding(
-                  padding: const EdgeInsets.all(32),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? AppColors.darkSurfaceElevated
-                              : AppColors.primaryContainer.withOpacity(0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.school_outlined,
-                          size: 36,
-                          color: isDark
-                              ? AppColors.primaryLight
-                              : AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
+                      Divider(color: p.rule),
+                      const SizedBox(height: 28),
                       Text(
                         'Nenhuma disciplina adicionada',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: p.ink,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Cadastre suas matérias para acompanhar tempos de aula e controlar suas faltas com facilidade.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                          height: 1.4,
-                        ),
-                        textAlign: TextAlign.center,
+                        'Adicione as matérias do semestre com o limite de faltas de cada uma. '
+                        'Depois é só marcar os tempos que você perder.',
+                        style: TextStyle(fontSize: 15, height: 1.45, color: p.inkSoft),
                       ),
-                      const SizedBox(height: 28),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.add_rounded, size: 20),
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.add),
                         label: const Text('Adicionar disciplina'),
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => AddEditDisciplineScreen(
-                                appState: appState,
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: () => _openNew(context),
                       ),
                     ],
                   ),
                 ),
               )
             else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(22, 12, 22, 90),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final discipline = disciplines[index];
-                      return DisciplineCard(
-                        discipline: discipline,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => DisciplineDetailScreen(
-                                disciplineId: discipline.id,
-                                appState: appState,
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    childCount: disciplines.length,
-                  ),
-                ),
+              SliverList.separated(
+                itemCount: disciplines.length + 1,
+                separatorBuilder: (_, _) =>
+                    Divider(indent: 20, endIndent: 20, color: p.rule),
+                itemBuilder: (context, index) {
+                  if (index == 0) return const SizedBox.shrink();
+                  final discipline = disciplines[index - 1];
+                  return DisciplineCard(
+                    discipline: discipline,
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => DisciplineDetailScreen(
+                        disciplineId: discipline.id,
+                        appState: appState,
+                      ),
+                    )),
+                  );
+                },
               ),
+            if (disciplines.isNotEmpty)
+              const SliverToBoxAdapter(child: SizedBox(height: 96)),
           ],
         ),
       ),
       floatingActionButton: disciplines.isNotEmpty
           ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AddEditDisciplineScreen(
-                      appState: appState,
-                    ),
-                  ),
-                );
-              },
-              backgroundColor: isDark ? AppColors.primaryLight : AppColors.primary,
-              foregroundColor: isDark ? Colors.black : Colors.white,
-              elevation: 3,
-              icon: const Icon(Icons.add_rounded, size: 22),
+              onPressed: () => _openNew(context),
+              icon: const Icon(Icons.add),
               label: const Text(
-                'Disciplina',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
+                'Nova disciplina',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             )
           : null,

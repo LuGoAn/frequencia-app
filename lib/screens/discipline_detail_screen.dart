@@ -6,6 +6,7 @@ import '../services/attendance_calculator.dart';
 import '../services/icon_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_colors.dart';
+import '../widgets/attendance_grid.dart';
 import '../widgets/record_absence_sheet.dart';
 import '../widgets/status_badge.dart';
 import 'add_edit_discipline_screen.dart';
@@ -20,603 +21,353 @@ class DisciplineDetailScreen extends StatelessWidget {
     required this.appState,
   });
 
-  void _showDeleteDisciplineDialog(BuildContext context, Discipline discipline) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+  Future<void> _confirmDeleteDiscipline(BuildContext context, Discipline d) async {
+    final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Excluir disciplina?'),
-        content: Text(
-          'Deseja realmente remover "${discipline.name}" e todo seu histórico de faltas? Esta ação não pode ser desfeita.',
-          style: TextStyle(
-            fontSize: 14,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-          ),
-        ),
+        content: Text('"${d.name}" e todas as faltas registradas nela vão ser apagadas.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              ),
-            ),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop(); // pop dialog
-              Navigator.of(context).pop(); // pop details screen
-              await appState.deleteDiscipline(discipline.id);
-            },
-            child: const Text(
-              'Excluir',
-              style: TextStyle(
-                color: AppColors.alertRose,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Palette.of(ctx).red),
+            child: const Text('Excluir'),
           ),
         ],
+      ),
+    );
+    if (ok == true && context.mounted) {
+      Navigator.of(context).pop();
+      await appState.deleteDiscipline(d.id);
+    }
+  }
+
+  Future<void> _confirmDeleteAbsence(
+      BuildContext context, AbsenceRecord record, Discipline d) async {
+    final date = DateFormat("d 'de' MMMM", 'pt_BR').format(record.date);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remover falta?'),
+        content: Text('A falta de $date sai do histórico.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Palette.of(ctx).red),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await appState.deleteAbsence(d.id, record.id);
+  }
+
+  void _editAbsence(BuildContext context, AbsenceRecord record, Discipline d) {
+    RecordAbsenceSheet.show(
+      context: context,
+      periodsPerClass: d.periodsPerClass,
+      initialRecord: record,
+      onSave: (date, periods) => appState.updateAbsence(
+        d.id,
+        record.copyWith(date: date, missedPeriods: periods),
       ),
     );
   }
 
-  void _showDeleteAbsenceDialog(BuildContext context, AbsenceRecord record, Discipline discipline) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Excluir falta?'),
-        content: const Text(
-          'Deseja remover este registro de falta do histórico?',
-          style: TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancelar',
-              style: TextStyle(
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await appState.deleteAbsence(discipline.id, record.id);
-            },
-            child: const Text(
-              'Remover',
-              style: TextStyle(
-                color: AppColors.alertRose,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  String _remainingText(double remaining, int remainingPeriods) {
+    final f = AttendanceCalculator.formatAbsences;
+    if (remaining > 0) {
+      final faltas = AttendanceCalculator.faltaWord(remaining);
+      final tempos = remainingPeriods == 1 ? 'tempo' : 'tempos';
+      return 'Ainda cabem ${f(remaining)} $faltas ($remainingPeriods $tempos).';
+    }
+    if (remaining == 0) {
+      return 'Você está no limite. Mais uma falta e reprova por frequência.';
+    }
+    return 'Passou do limite em ${f(remaining.abs())} ${AttendanceCalculator.faltaWord(remaining.abs())}.';
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Listen to changes for this discipline from AppState
     return ListenableBuilder(
       listenable: appState,
       builder: (context, _) {
-        final discipline = appState.getDisciplineById(disciplineId);
-
-        if (discipline == null) {
+        final d = appState.getDisciplineById(disciplineId);
+        if (d == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Detalhes')),
-            body: const Center(child: Text('Disciplina não encontrada')),
+            appBar: AppBar(),
+            body: const Center(child: Text('Essa disciplina foi excluída.')),
           );
         }
 
-        final equivalent = discipline.equivalentAbsences;
-        final limit = discipline.absenceLimit;
-        final totalMissedPeriods = discipline.totalMissedPeriods;
+        final p = Palette.of(context);
+        final used = d.equivalentAbsences;
+        final limit = d.absenceLimit;
         final status = AttendanceCalculator.getStatus(
-          equivalentAbsences: equivalent,
+          equivalentAbsences: used,
           limit: limit,
         );
+        final color = p.forStatus(status);
         final frequency = AttendanceCalculator.calculateFrequencyPercentage(
-          equivalentAbsences: equivalent,
-          totalExpectedClasses: discipline.totalExpectedClasses,
+          equivalentAbsences: used,
+          totalExpectedClasses: d.totalExpectedClasses,
         );
-        final progress = limit > 0 ? (equivalent / limit).clamp(0.0, 1.0) : 0.0;
-        final remaining = AttendanceCalculator.calculateRemainingAbsences(limit, equivalent);
+        final remaining = AttendanceCalculator.calculateRemainingAbsences(limit, used);
         final remainingPeriods = AttendanceCalculator.calculateRemainingPeriods(
           limit,
-          discipline.periodsPerClass,
-          totalMissedPeriods,
+          d.periodsPerClass,
+          d.totalMissedPeriods,
         );
-
-        Color indicatorColor;
-        switch (status) {
-          case AttendanceHealthStatus.safe:
-            indicatorColor = isDark ? AppColors.darkSafeGreen : AppColors.safeGreen;
-            break;
-          case AttendanceHealthStatus.warning:
-            indicatorColor = isDark ? AppColors.darkWarningAmber : AppColors.warningAmber;
-            break;
-          case AttendanceHealthStatus.reached:
-          case AttendanceHealthStatus.exceeded:
-            indicatorColor = isDark ? AppColors.darkAlertRose : AppColors.alertRose;
-            break;
-        }
+        final f = AttendanceCalculator.formatAbsences;
 
         return Scaffold(
           appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.edit_outlined, size: 22),
+                icon: const Icon(Icons.edit_outlined),
                 tooltip: 'Editar disciplina',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => AddEditDisciplineScreen(
-                        appState: appState,
-                        discipline: discipline,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => AddEditDisciplineScreen(
+                    appState: appState,
+                    discipline: d,
+                  ),
+                )),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, size: 22),
+                icon: const Icon(Icons.delete_outline),
                 tooltip: 'Excluir disciplina',
-                onPressed: () => _showDeleteDisciplineDialog(context, discipline),
+                onPressed: () => _confirmDeleteDiscipline(context, d),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
             ],
           ),
           body: ListView(
-            padding: const EdgeInsets.fromLTRB(22, 10, 22, 40),
-            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
             children: [
-              // Hero Summary Card
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  ),
-                  boxShadow: isDark
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Icon + Badge
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.darkSurfaceElevated
-                                : AppColors.primaryContainer.withOpacity(0.4),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.primary.withOpacity(0.15),
-                            ),
-                          ),
-                          child: Icon(
-                            IconService.getIcon(discipline.iconKey),
-                            color: isDark ? AppColors.primaryLight : AppColors.primary,
-                            size: 26,
-                          ),
-                        ),
-                        StatusBadge(status: status),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Course Name
-                    Text(
-                      discipline.name,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                        color: isDark
-                            ? AppColors.darkTextPrimary
-                            : AppColors.lightTextPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${discipline.periodsPerClass} ${discipline.periodsPerClass == 1 ? 'tempo por aula' : 'tempos por aula'}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.darkTextSecondary
-                            : AppColors.lightTextSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Metrics Grid (Frequência & Faltas)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Frequência',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.darkTextMuted
-                                      : AppColors.lightTextMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${frequency.toStringAsFixed(0)}%',
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -1,
-                                  color: indicatorColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Faltas acumuladas',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.darkTextMuted
-                                      : AppColors.lightTextMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: AttendanceCalculator.formatAbsences(equivalent),
-                                      style: TextStyle(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: -1,
-                                        color: isDark
-                                            ? AppColors.darkTextPrimary
-                                            : AppColors.lightTextPrimary,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: ' / ${AttendanceCalculator.formatAbsences(limit)}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark
-                                            ? AppColors.darkTextSecondary
-                                            : AppColors.lightTextSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Visual Progress Bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        minHeight: 8,
-                        backgroundColor: isDark
-                            ? AppColors.darkSurfaceElevated
-                            : AppColors.lightBorder.withOpacity(0.7),
-                        valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Contextual status message
-                    Text(
-                      remaining > 0
-                          ? 'Você ainda pode faltar ${AttendanceCalculator.formatAbsences(remaining)} faltas ($remainingPeriods tempos).'
-                          : remaining == 0
-                              ? 'Você atingiu o limite de faltas permitido. Qualquer nova falta resultará em reprovação por frequência.'
-                              : 'Atenção: você ultrapassou o limite em ${AttendanceCalculator.formatAbsences(remaining.abs())} faltas.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: remaining < 0
-                            ? (isDark ? AppColors.darkAlertRose : AppColors.alertRose)
-                            : (isDark
-                                ? AppColors.darkTextSecondary
-                                : AppColors.lightTextSecondary),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
+              Text(
+                d.name,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w400,
+                  height: 1.2,
+                  letterSpacing: -0.3,
+                  color: p.ink,
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // Prominent Action Button: + Registrar Falta
-              SizedBox(
-                height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    RecordAbsenceSheet.show(
-                      context: context,
-                      periodsPerClass: discipline.periodsPerClass,
-                      onSave: (date, periods) {
-                        final record = AbsenceRecord(
-                          id: DateTime.now().millisecondsSinceEpoch.toString(),
-                          date: date,
-                          missedPeriods: periods,
-                        );
-                        appState.addAbsence(discipline.id, record);
-                      },
-                    );
-                  },
-                  icon: const Icon(Icons.add_circle_outline_rounded, size: 22),
-                  label: const Text(
-                    'Registrar falta',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // History Section Title
+              const SizedBox(height: 8),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(IconService.getIcon(d.iconKey), size: 18, color: p.inkSoft),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${d.periodsPerClass} ${d.periodsPerClass == 1 ? 'tempo' : 'tempos'} por aula, '
+                      'limite de ${f(limit)} faltas',
+                      style: TextStyle(fontSize: 14, color: p.inkSoft),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'Histórico de faltas',
+                    f(used),
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.3,
-                      color: isDark
-                          ? AppColors.darkTextPrimary
-                          : AppColors.lightTextPrimary,
+                      fontSize: 72,
+                      fontWeight: FontWeight.w200,
+                      height: 0.9,
+                      letterSpacing: -2,
+                      color: color,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
-                  if (discipline.absences.isNotEmpty)
-                    Text(
-                      '${discipline.absences.length} ${discipline.absences.length == 1 ? 'registro' : 'registros'}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.darkTextMuted
-                            : AppColors.lightTextMuted,
-                      ),
+                  const SizedBox(width: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      used == 1 ? 'falta\nde ${f(limit)}' : 'faltas\nde ${f(limit)}',
+                      style: TextStyle(fontSize: 15, height: 1.25, color: p.inkSoft),
                     ),
+                  ),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: StatusBadge(status: status),
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
-
-              // Empty or List of History Records
-              if (discipline.absences.isEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+              Text(
+                _remainingText(remaining, remainingPeriods),
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.4,
+                  color: remaining < 0 ? p.red : p.ink,
+                ),
+              ),
+              const SizedBox(height: 24),
+              AttendanceGrid(
+                limit: limit,
+                periodsPerClass: d.periodsPerClass,
+                missedPeriods: d.totalMissedPeriods,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Cada quadrado é um tempo de aula. Frequência estimada em ${frequency.toStringAsFixed(0)}%.',
+                style: TextStyle(fontSize: 13, height: 1.4, color: p.inkFaint),
+              ),
+              const SizedBox(height: 28),
+              FilledButton.icon(
+                icon: const Icon(Icons.add),
+                label: const Text('Registrar falta'),
+                onPressed: () => RecordAbsenceSheet.show(
+                  context: context,
+                  periodsPerClass: d.periodsPerClass,
+                  onSave: (date, periods) => appState.addAbsence(
+                    d.id,
+                    AbsenceRecord(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      date: date,
+                      missedPeriods: periods,
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline_rounded,
-                        size: 40,
-                        color: isDark ? AppColors.darkSafeGreen : AppColors.safeGreen,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Frequência perfeita!',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppColors.darkTextPrimary
-                              : AppColors.lightTextPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Nenhuma falta registrada nesta disciplina até o momento.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                ),
+              ),
+              const SizedBox(height: 40),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    'Histórico',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: p.ink,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (d.absences.isNotEmpty)
+                    Text(
+                      '${d.absences.length} ${d.absences.length == 1 ? 'registro' : 'registros'}',
+                      style: TextStyle(fontSize: 13, color: p.inkFaint),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Divider(color: p.rule),
+              if (d.absences.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    'Nenhuma falta registrada ainda.',
+                    style: TextStyle(fontSize: 15, color: p.inkSoft),
                   ),
                 )
               else
-                ...discipline.absences.map((record) {
-                  final dayFormat = DateFormat("d 'de' MMMM", 'pt_BR');
-                  final formattedDate = dayFormat.format(record.date);
-                  final periodsDesc = AttendanceCalculator.formatPeriodsDescription(
-                    record.missedPeriods,
-                    discipline.periodsPerClass,
-                  );
-                  final eqFaltas = AttendanceCalculator.calculateEquivalentAbsences(
-                    record.periodsCount,
-                    discipline.periodsPerClass,
-                  );
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        // Calendar date badge
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.darkSurfaceElevated
-                                : AppColors.lightBackground,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.darkBorder
-                                  : AppColors.lightBorder,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                record.date.day.toString().padLeft(2, '0'),
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: isDark
-                                      ? AppColors.darkTextPrimary
-                                      : AppColors.lightTextPrimary,
-                                ),
-                              ),
-                              Text(
-                                DateFormat('MMM', 'pt_BR')
-                                    .format(record.date)
-                                    .toUpperCase()
-                                    .replaceAll('.', ''),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.primaryLight
-                                      : AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-
-                        // Details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                periodsDesc,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark
-                                      ? AppColors.darkTextPrimary
-                                      : AppColors.lightTextPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                '${AttendanceCalculator.formatAbsences(eqFaltas)} ${eqFaltas == 1 ? 'falta equivalente' : 'faltas equivalentes'}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? AppColors.darkTextSecondary
-                                      : AppColors.lightTextSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Action Buttons: Edit and Delete
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined, size: 19),
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                          tooltip: 'Editar registro',
-                          onPressed: () {
-                            RecordAbsenceSheet.show(
-                              context: context,
-                              periodsPerClass: discipline.periodsPerClass,
-                              initialRecord: record,
-                              onSave: (date, periods) {
-                                final updated = record.copyWith(
-                                  date: date,
-                                  missedPeriods: periods,
-                                );
-                                appState.updateAbsence(discipline.id, updated);
-                              },
-                            );
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, size: 19),
-                          color: isDark
-                              ? AppColors.darkTextMuted
-                              : AppColors.lightTextMuted,
-                          tooltip: 'Remover falta',
-                          onPressed: () => _showDeleteAbsenceDialog(context, record, discipline),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
+                for (final record in d.absences) ...[
+                  _AbsenceRow(
+                    record: record,
+                    periodsPerClass: d.periodsPerClass,
+                    onEdit: () => _editAbsence(context, record, d),
+                    onDelete: () => _confirmDeleteAbsence(context, record, d),
+                  ),
+                  Divider(color: p.rule),
+                ],
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _AbsenceRow extends StatelessWidget {
+  final AbsenceRecord record;
+  final int periodsPerClass;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _AbsenceRow({
+    required this.record,
+    required this.periodsPerClass,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    final eq = AttendanceCalculator.calculateEquivalentAbsences(
+      record.periodsCount,
+      periodsPerClass,
+    );
+    final day = DateFormat('d MMM', 'pt_BR').format(record.date).replaceAll('.', '');
+    final weekday = DateFormat('EEEE', 'pt_BR').format(record.date);
+
+    return InkWell(
+      onTap: onEdit,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 76,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    day,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: p.ink),
+                  ),
+                  Text(
+                    weekday.split('-').first,
+                    style: TextStyle(fontSize: 12, color: p.inkFaint),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AttendanceCalculator.formatPeriodsDescription(
+                      record.missedPeriods,
+                      periodsPerClass,
+                    ),
+                    style: TextStyle(fontSize: 15, color: p.ink),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${AttendanceCalculator.formatAbsences(eq)} ${AttendanceCalculator.faltaWord(eq)}',
+                    style: TextStyle(fontSize: 13, color: p.red),
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(Icons.more_vert, color: p.inkFaint),
+              tooltip: 'Opções',
+              onSelected: (v) => v == 'edit' ? onEdit() : onDelete(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: Text('Editar')),
+                PopupMenuItem(value: 'delete', child: Text('Remover')),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

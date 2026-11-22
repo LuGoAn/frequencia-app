@@ -16,7 +16,6 @@ class DisciplineIconItem {
 
 class IconService {
   static const List<DisciplineIconItem> allIcons = [
-    // --- Tecnologia & Programação ---
     DisciplineIconItem(
       key: 'code',
       label: 'Código / Dev',
@@ -90,7 +89,6 @@ class IconService {
       category: 'Tecnologia',
     ),
 
-    // --- Inteligência Artificial & Robótica ---
     DisciplineIconItem(
       key: 'psychology',
       label: 'Inteligência Artificial',
@@ -128,7 +126,6 @@ class IconService {
       category: 'Inteligência & Robótica',
     ),
 
-    // --- Matemática & Ciências Exatas ---
     DisciplineIconItem(
       key: 'functions',
       label: 'Cálculo Diferencial/Integral',
@@ -172,7 +169,6 @@ class IconService {
       category: 'Matemática & Ciências',
     ),
 
-    // --- Projetos, Extensão & Metodologia ---
     DisciplineIconItem(
       key: 'school',
       label: 'TCC / Graduação',
@@ -222,7 +218,6 @@ class IconService {
       category: 'Acadêmico & Projetos',
     ),
 
-    // --- Idiomas & Geral ---
     DisciplineIconItem(
       key: 'translate',
       label: 'Idiomas / Línguas',
@@ -259,13 +254,11 @@ class IconService {
     return item.label;
   }
 
-  /// Suggests an icon key based on keywords inside course name.
   static String suggestIcon(String courseName) {
     final clean = _normalize(courseName);
 
     if (clean.isEmpty) return 'code';
 
-    // AI & Machine Learning & Robótica
     if (clean.contains('inteligencia') ||
         clean.contains('ia') ||
         clean.contains('machine learning') ||
@@ -279,7 +272,6 @@ class IconService {
       return 'precision_manufacturing';
     }
 
-    // Banco de dados
     if (clean.contains('banco de dados') ||
         clean.contains('database') ||
         clean.contains('sql') ||
@@ -287,7 +279,6 @@ class IconService {
       return 'storage';
     }
 
-    // Redes & Nuvem
     if (clean.contains('nuvem') || clean.contains('cloud')) {
       return 'cloud';
     }
@@ -295,7 +286,6 @@ class IconService {
       return 'hub';
     }
 
-    // Mobile
     if (clean.contains('mobile') ||
         clean.contains('celular') ||
         clean.contains('android') ||
@@ -304,19 +294,16 @@ class IconService {
       return 'smartphone';
     }
 
-    // Segurança
     if (clean.contains('seguranca') ||
         clean.contains('cripto') ||
         clean.contains('security')) {
       return 'lock';
     }
 
-    // Estruturas & Algoritmos
     if (clean.contains('estrutura de dados') || clean.contains('algoritmo')) {
       return 'account_tree';
     }
 
-    // Matemática, Cálculo, Estatística
     if (clean.contains('calculo') ||
         clean.contains('diferencial') ||
         clean.contains('integral')) {
@@ -332,7 +319,6 @@ class IconService {
       return 'square_foot';
     }
 
-    // Física, Química, Eletrônica
     if (clean.contains('eletronica') ||
         clean.contains('eletricidade') ||
         clean.contains('magnetismo') ||
@@ -354,7 +340,6 @@ class IconService {
       return 'view_in_ar';
     }
 
-    // Hardware, Arquitetura, Embarcados, Sistemas Operacionais
     if (clean.contains('arquitetura de computadores') ||
         clean.contains('organizacao') ||
         clean.contains('embarcado') ||
@@ -363,7 +348,6 @@ class IconService {
       return 'memory';
     }
 
-    // Idiomas
     if (clean.contains('japones') ||
         clean.contains('ingles') ||
         clean.contains('idioma') ||
@@ -372,7 +356,6 @@ class IconService {
       return 'translate';
     }
 
-    // Acadêmico & Extensão
     if (clean.contains('tcc') ||
         clean.contains('conclusao de curso') ||
         clean.contains('topicos integradores')) {
@@ -397,7 +380,6 @@ class IconService {
       return 'lightbulb';
     }
 
-    // Programação em geral
     if (clean.contains('web') ||
         clean.contains('front') ||
         clean.contains('back') ||

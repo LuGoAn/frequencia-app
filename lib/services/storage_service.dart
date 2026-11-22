@@ -7,7 +7,6 @@ class StorageService {
   static const String _disciplinesKey = 'disciplines_data_v1';
   static const String _themeModeKey = 'app_theme_mode_v1';
 
-  /// Loads all saved disciplines. Returns empty list if none saved.
   Future<List<Discipline>> loadDisciplines() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -25,7 +24,6 @@ class StorageService {
     }
   }
 
-  /// Saves the entire list of disciplines locally.
   Future<bool> saveDisciplines(List<Discipline> disciplines) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -38,7 +36,6 @@ class StorageService {
     }
   }
 
-  /// Loads the theme mode. Default is light per specification.
   Future<ThemeMode> loadThemeMode() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -53,7 +50,6 @@ class StorageService {
     }
   }
 
-  /// Saves the user's theme mode preference.
   Future<bool> saveThemeMode(ThemeMode mode) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -67,7 +63,6 @@ class StorageService {
     }
   }
 
-  /// Export backup JSON string for future export/import support
   Future<String> exportBackup(List<Discipline> disciplines) async {
     final data = {
       'version': 1,

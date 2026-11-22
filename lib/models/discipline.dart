@@ -4,9 +4,9 @@ class Discipline {
   final String id;
   final String name;
   final String iconKey;
-  final int periodsPerClass; // 1, 2, or 3
-  final double absenceLimit; // e.g. 15.0 faltas
-  final int? totalClasses; // optional: total estimated classes (default: limit * 4)
+  final int periodsPerClass;
+  final double absenceLimit;
+  final int? totalClasses;
   final List<AbsenceRecord> absences;
   final DateTime createdAt;
 
@@ -35,7 +35,7 @@ class Discipline {
     if (totalClasses != null && totalClasses! > 0) {
       return totalClasses!;
     }
-    // Default assumption based on standard 25% max absences (MEC/LDB):
+    // sem total informado, assume que o limite é 25% das aulas (regra do MEC)
     return (absenceLimit * 4).round();
   }
 

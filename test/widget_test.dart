@@ -4,7 +4,7 @@ import 'package:frequencia_app/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('App smoke test: loads empty state properly', (WidgetTester tester) async {
+  testWidgets('abre sem disciplinas cadastradas', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     final appState = AppState();
     await appState.init();

@@ -1,56 +1,72 @@
 import 'package:flutter/material.dart';
+import '../services/attendance_calculator.dart';
 
-class AppColors {
-  // Brand Primary (Refined Academic Emerald / Teal)
-  static const Color primary = Color(0xFF0F766E);
-  static const Color primaryLight = Color(0xFF14B8A6);
-  static const Color primaryDark = Color(0xFF0D5D57);
-  static const Color primaryContainer = Color(0xFFCCFBF1);
+// Caneta azul no papel, falta marcada de vermelho, igual diário de chamada.
+class Palette {
+  final Color paper;
+  final Color sheet;
+  final Color ink;
+  final Color inkSoft;
+  final Color inkFaint;
+  final Color rule;
+  final Color cellEmpty;
+  final Color red;
+  final Color amber;
+  final Color onInk;
 
-  // Light Theme Surfaces
-  static const Color lightBackground = Color(0xFFF7F9FA);
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceElevated = Color(0xFFFFFFFF);
-  static const Color lightBorder = Color(0xFFE5E9EE);
-  static const Color lightDivider = Color(0xFFEDF1F5);
+  Color get onRed => onInk;
 
-  // Light Theme Typography
-  static const Color lightTextPrimary = Color(0xFF111827);
-  static const Color lightTextSecondary = Color(0xFF64748B);
-  static const Color lightTextMuted = Color(0xFF94A3B8);
+  const Palette({
+    required this.paper,
+    required this.sheet,
+    required this.ink,
+    required this.inkSoft,
+    required this.inkFaint,
+    required this.rule,
+    required this.cellEmpty,
+    required this.red,
+    required this.amber,
+    required this.onInk,
+  });
 
-  // Dark Theme Surfaces
-  static const Color darkBackground = Color(0xFF0F1216);
-  static const Color darkSurface = Color(0xFF181C24);
-  static const Color darkSurfaceElevated = Color(0xFF202632);
-  static const Color darkBorder = Color(0xFF282F3D);
-  static const Color darkDivider = Color(0xFF1F2530);
+  static const light = Palette(
+    paper: Color(0xFFF3F5F7),
+    sheet: Color(0xFFFFFFFF),
+    ink: Color(0xFF1C2E5A),
+    inkSoft: Color(0xFF54617D),
+    inkFaint: Color(0xFF8E98AD),
+    rule: Color(0xFFD5DCE8),
+    cellEmpty: Color(0xFFE4E9F1),
+    red: Color(0xFFCB3A3A),
+    amber: Color(0xFFB7791F),
+    onInk: Color(0xFFFFFFFF),
+  );
 
-  // Dark Theme Typography
-  static const Color darkTextPrimary = Color(0xFFF1F5F9);
-  static const Color darkTextSecondary = Color(0xFF94A3B8);
-  static const Color darkTextMuted = Color(0xFF64748B);
+  static const dark = Palette(
+    paper: Color(0xFF131A29),
+    sheet: Color(0xFF1A2335),
+    ink: Color(0xFFDCE3F0),
+    inkSoft: Color(0xFF9AA6BE),
+    inkFaint: Color(0xFF66728C),
+    rule: Color(0xFF29344B),
+    cellEmpty: Color(0xFF253049),
+    red: Color(0xFFF07070),
+    amber: Color(0xFFE0A845),
+    onInk: Color(0xFF131A29),
+  );
 
-  // Health / Status Colors (Light Theme)
-  static const Color safeGreen = Color(0xFF059669);
-  static const Color safeGreenBg = Color(0xFFECFDF5);
-  static const Color safeGreenBorder = Color(0xFFA7F3D0);
+  static Palette of(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark ? dark : light;
 
-  static const Color warningAmber = Color(0xFFD97706);
-  static const Color warningAmberBg = Color(0xFFFFFBEB);
-  static const Color warningAmberBorder = Color(0xFFFDE68A);
-
-  static const Color alertRose = Color(0xFFE11D48);
-  static const Color alertRoseBg = Color(0xFFFFF1F2);
-  static const Color alertRoseBorder = Color(0xFFFECDD3);
-
-  // Health / Status Colors (Dark Theme)
-  static const Color darkSafeGreen = Color(0xFF10B981);
-  static const Color darkSafeGreenBg = Color(0x2210B981);
-
-  static const Color darkWarningAmber = Color(0xFFF59E0B);
-  static const Color darkWarningAmberBg = Color(0x22F59E0B);
-
-  static const Color darkAlertRose = Color(0xFFFB7185);
-  static const Color darkAlertRoseBg = Color(0x22FB7185);
+  Color forStatus(AttendanceHealthStatus status) {
+    switch (status) {
+      case AttendanceHealthStatus.safe:
+        return ink;
+      case AttendanceHealthStatus.warning:
+        return amber;
+      case AttendanceHealthStatus.reached:
+      case AttendanceHealthStatus.exceeded:
+        return red;
+    }
+  }
 }

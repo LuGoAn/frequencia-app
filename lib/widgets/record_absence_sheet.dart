@@ -7,7 +7,7 @@ import '../theme/app_colors.dart';
 class RecordAbsenceSheet extends StatefulWidget {
   final int periodsPerClass;
   final AbsenceRecord? initialRecord;
-  final Function(DateTime date, List<int> missedPeriods) onSave;
+  final void Function(DateTime date, List<int> missedPeriods) onSave;
 
   const RecordAbsenceSheet({
     super.key,
@@ -20,13 +20,13 @@ class RecordAbsenceSheet extends StatefulWidget {
     required BuildContext context,
     required int periodsPerClass,
     AbsenceRecord? initialRecord,
-    required Function(DateTime date, List<int> missedPeriods) onSave,
+    required void Function(DateTime date, List<int> missedPeriods) onSave,
   }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => RecordAbsenceSheet(
+      showDragHandle: true,
+      builder: (_) => RecordAbsenceSheet(
         periodsPerClass: periodsPerClass,
         initialRecord: initialRecord,
         onSave: onSave,
@@ -39,45 +39,38 @@ class RecordAbsenceSheet extends StatefulWidget {
 }
 
 class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
-  late DateTime _selectedDate;
-  final Set<int> _selectedPeriods = {};
+  late DateTime _date;
+  final Set<int> _selected = {};
+
+  int get _n => widget.periodsPerClass;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialRecord != null) {
-      _selectedDate = widget.initialRecord!.date;
-      _selectedPeriods.addAll(widget.initialRecord!.missedPeriods);
+    final r = widget.initialRecord;
+    if (r != null) {
+      _date = r.date;
+      _selected.addAll(r.missedPeriods);
     } else {
-      _selectedDate = DateTime.now();
-      // Default: select all periods (standard full absence)
-      for (int i = 1; i <= widget.periodsPerClass; i++) {
-        _selectedPeriods.add(i);
-      }
+      _date = DateTime.now();
+      // na maioria das vezes falta a aula inteira
+      _selected.addAll(List.generate(_n, (i) => i + 1));
     }
   }
 
-  void _togglePeriod(int period) {
+  void _toggle(int period) {
     setState(() {
-      if (_selectedPeriods.contains(period)) {
-        _selectedPeriods.remove(period);
+      if (!_selected.remove(period)) _selected.add(period);
+    });
+  }
+
+  void _toggleAll() {
+    setState(() {
+      if (_selected.length == _n) {
+        _selected.clear();
       } else {
-        _selectedPeriods.add(period);
+        _selected.addAll(List.generate(_n, (i) => i + 1));
       }
-    });
-  }
-
-  void _selectAll() {
-    setState(() {
-      for (int i = 1; i <= widget.periodsPerClass; i++) {
-        _selectedPeriods.add(i);
-      }
-    });
-  }
-
-  void _clearAll() {
-    setState(() {
-      _selectedPeriods.clear();
     });
   }
 
@@ -85,366 +78,153 @@ class _RecordAbsenceSheetState extends State<RecordAbsenceSheet> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _date,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 1),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context),
-          child: child!,
-        );
-      },
     );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Widget _buildPeriodCard(int period, bool isSelected, bool isDark) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => _togglePeriod(period),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark
-                  ? AppColors.primaryLight.withOpacity(0.18)
-                  : AppColors.primaryContainer.withOpacity(0.5))
-              : (isDark
-                  ? AppColors.darkSurfaceElevated
-                  : AppColors.lightBackground),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            width: isSelected ? 1.8 : 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              size: 20,
-              color: isSelected
-                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                  : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '$periodº tempo',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPeriodChip(int period, bool isSelected, bool isDark) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () => _togglePeriod(period),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? (isDark
-                  ? AppColors.primaryLight.withOpacity(0.18)
-                  : AppColors.primaryContainer.withOpacity(0.5))
-              : (isDark
-                  ? AppColors.darkSurfaceElevated
-                  : AppColors.lightBackground),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected
-                ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-            width: isSelected ? 1.8 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              size: 18,
-              color: isSelected
-                  ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                  : (isDark ? AppColors.darkTextMuted : AppColors.lightTextMuted),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$periodº tempo',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                    : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (picked != null) setState(() => _date = picked);
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final p = Palette.of(context);
     final isEditing = widget.initialRecord != null;
-
-    final dateFormat = DateFormat("d 'de' MMMM, yyyy", 'pt_BR');
-    final formattedDate = dateFormat.format(_selectedDate);
-
-    // Calculate equivalent absences for the current selection
-    final equivalent = AttendanceCalculator.calculateEquivalentAbsences(
-      _selectedPeriods.length,
-      widget.periodsPerClass,
-    );
-
-    final canSave = _selectedPeriods.isNotEmpty;
+    final equivalent = AttendanceCalculator.calculateEquivalentAbsences(_selected.length, _n);
+    final date = DateFormat("EEEE, d 'de' MMMM", 'pt_BR').format(_date);
 
     return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        24 + MediaQuery.of(context).viewInsets.bottom,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            // Header title
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isEditing ? 'Editar registro de falta' : 'Registrar falta',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.3,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 22),
-                  onPressed: () => Navigator.of(context).pop(),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Date Selection Tile
-            Text(
-              'Data da aula',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            InkWell(
-              onTap: _pickDate,
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightBackground,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today_rounded,
-                      size: 20,
-                      color: isDark ? AppColors.primaryLight : AppColors.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'Alterar',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.primaryLight : AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Periods Selection section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Quais tempos você perdeu?',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
-                ),
-                if (widget.periodsPerClass > 1)
-                  GestureDetector(
-                    onTap: _selectedPeriods.length == widget.periodsPerClass
-                        ? _clearAll
-                        : _selectAll,
-                    child: Text(
-                      _selectedPeriods.length == widget.periodsPerClass
-                          ? 'Desmarcar todos'
-                          : 'Selecionar todos',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.primaryLight : AppColors.primary,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // Period Selection Cards (Row for <=3, Grid for >3)
-            if (widget.periodsPerClass <= 3)
-              Row(
-                children: List.generate(widget.periodsPerClass, (index) {
-                  final period = index + 1;
-                  final isSelected = _selectedPeriods.contains(period);
-
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        right: index < widget.periodsPerClass - 1 ? 10 : 0,
-                      ),
-                      child: _buildPeriodCard(period, isSelected, isDark),
-                    ),
-                  );
-                }),
-              )
-            else
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: widget.periodsPerClass <= 4 ? 2 : 3,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: widget.periodsPerClass <= 4 ? 2.3 : 2.0,
-                ),
-                itemCount: widget.periodsPerClass,
-                itemBuilder: (context, index) {
-                  final period = index + 1;
-                  final isSelected = _selectedPeriods.contains(period);
-                  return _buildPeriodChip(period, isSelected, isDark);
-                },
-              ),
-            const SizedBox(height: 16),
-
-            // Real-time calculation helper card
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isEditing ? 'Editar falta' : 'Registrar falta',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w400, color: p.ink),
+          ),
+          const SizedBox(height: 16),
+          InkWell(
+            onTap: _pickDate,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceElevated : AppColors.lightBackground,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                ),
+                border: Border.all(color: p.rule),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    size: 18,
-                    color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                  ),
-                  const SizedBox(width: 10),
+                  Icon(Icons.event_outlined, size: 20, color: p.inkSoft),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _selectedPeriods.isEmpty
-                          ? 'Selecione pelo menos um tempo perdido.'
-                          : '${_selectedPeriods.length} ${_selectedPeriods.length == 1 ? 'tempo selecionado' : 'tempos selecionados'} = ${AttendanceCalculator.formatAbsences(equivalent)} faltas equivalentes.',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                      ),
+                      date[0].toUpperCase() + date.substring(1),
+                      style: TextStyle(fontSize: 16, color: p.ink),
                     ),
+                  ),
+                  Text(
+                    'Mudar data',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: p.ink),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-
-            // Confirm Button
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: canSave
-                    ? () {
-                        widget.onSave(
-                          _selectedDate,
-                          _selectedPeriods.toList()..sort(),
-                        );
-                        Navigator.of(context).pop();
-                      }
-                    : null,
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
                 child: Text(
-                  isEditing ? 'Atualizar falta' : 'Confirmar registro',
+                  'Quais tempos você perdeu?',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: p.ink),
                 ),
               ),
+              if (_n > 1)
+                TextButton(
+                  onPressed: _toggleAll,
+                  child: Text(_selected.length == _n ? 'Limpar' : 'Aula inteira'),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 1; i <= _n; i++)
+                _PeriodCell(
+                  period: i,
+                  selected: _selected.contains(i),
+                  onTap: () => _toggle(i),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _selected.isEmpty
+                ? 'Marque pelo menos um tempo.'
+                : '${_selected.length} de $_n ${_n == 1 ? 'tempo' : 'tempos'}, conta como '
+                    '${AttendanceCalculator.formatAbsences(equivalent)} ${AttendanceCalculator.faltaWord(equivalent)}.',
+            style: TextStyle(fontSize: 14, color: p.inkSoft),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _selected.isEmpty
+                ? null
+                : () {
+                    widget.onSave(_date, _selected.toList()..sort());
+                    Navigator.of(context).pop();
+                  },
+            child: Text(isEditing ? 'Salvar' : 'Registrar falta'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PeriodCell extends StatelessWidget {
+  final int period;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PeriodCell({
+    required this.period,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Palette.of(context);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$periodº tempo',
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? p.red : p.cellEmpty,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '$periodº',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: selected ? p.onRed : p.inkSoft,
             ),
-          ],
+          ),
         ),
       ),
     );

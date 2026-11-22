@@ -16,7 +16,7 @@ class IconPickerSheet extends StatefulWidget {
     return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      showDragHandle: true,
       builder: (ctx) => IconPickerSheet(
         selectedKey: currentKey,
         onSelected: (key) => Navigator.of(ctx).pop(key),
@@ -29,168 +29,106 @@ class IconPickerSheet extends StatefulWidget {
 }
 
 class _IconPickerSheetState extends State<IconPickerSheet> {
-  String _selectedCategory = 'Todos';
-  String _searchQuery = '';
+  static const _categories = [
+    'Todos',
+    'Tecnologia',
+    'Inteligência & Robótica',
+    'Matemática & Ciências',
+    'Acadêmico & Projetos',
+    'Geral & Humanas',
+  ];
+
+  String _category = 'Todos';
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final p = Palette.of(context);
+    final icons = IconService.allIcons
+        .where((i) => _category == 'Todos' || i.category == _category)
+        .toList();
 
-    final categories = ['Todos', 'Tecnologia', 'Inteligência & Robótica', 'Matemática & Ciências', 'Acadêmico & Projetos', 'Geral & Humanas'];
-
-    final filteredIcons = IconService.allIcons.where((item) {
-      final matchesCategory = _selectedCategory == 'Todos' || item.category == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty ||
-          item.label.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          item.key.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    }).toList();
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    return SizedBox(
+      height: MediaQuery.of(context).size.height * 0.72,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Drag handle
-          Center(
-            child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 8),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-
-          // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Escolher ícone',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  onPressed: () => Navigator.of(context).pop(),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Text(
+              'Escolher ícone',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w400, color: p.ink),
             ),
           ),
-
-          // Category filter row
           SizedBox(
-            height: 38,
+            height: 40,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemCount: _categories.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final cat = categories[index];
-                final isSelected = cat == _selectedCategory;
+                final cat = _categories[index];
+                final selected = cat == _category;
                 return ChoiceChip(
                   label: Text(cat),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      setState(() => _selectedCategory = cat);
-                    }
-                  },
-                  labelStyle: TextStyle(
-                    fontSize: 13,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected
-                        ? (isDark ? Colors.black : Colors.white)
-                        : (isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
-                  ),
-                  selectedColor: isDark ? AppColors.primaryLight : AppColors.primary,
-                  backgroundColor: isDark ? AppColors.darkSurfaceElevated : AppColors.lightBackground,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: isSelected
-                          ? Colors.transparent
-                          : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                    ),
-                  ),
+                  selected: selected,
                   showCheckmark: false,
-                  visualDensity: VisualDensity.compact,
+                  onSelected: (_) => setState(() => _category = cat),
+                  labelStyle: TextStyle(
+                    fontSize: 14,
+                    color: selected ? p.onInk : p.inkSoft,
+                  ),
+                  selectedColor: p.ink,
+                  backgroundColor: p.cellEmpty,
+                  side: BorderSide.none,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 );
               },
             ),
           ),
           const SizedBox(height: 12),
-
-          // Grid of icons
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 0.9,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 0.85,
               ),
-              itemCount: filteredIcons.length,
+              itemCount: icons.length,
               itemBuilder: (context, index) {
-                final item = filteredIcons[index];
-                final isSelected = item.key == widget.selectedKey;
-
-                return InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () => widget.onSelected(item.key),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? (isDark
-                              ? AppColors.primaryLight.withOpacity(0.18)
-                              : AppColors.primaryContainer.withOpacity(0.6))
-                          : (isDark ? AppColors.darkSurfaceElevated : AppColors.lightBackground),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isSelected
-                            ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                            : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
-                        width: isSelected ? 1.8 : 1,
+                final item = icons[index];
+                final selected = item.key == widget.selectedKey;
+                return Tooltip(
+                  message: item.label,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => widget.onSelected(item.key),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: selected ? p.ink : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
-                    padding: const EdgeInsets.all(8),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          item.icon,
-                          size: 26,
-                          color: isSelected
-                              ? (isDark ? AppColors.primaryLight : AppColors.primary)
-                              : (isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                      padding: const EdgeInsets.all(6),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(item.icon, size: 26, color: selected ? p.onInk : p.ink),
+                          const SizedBox(height: 6),
+                          Text(
+                            item.label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              height: 1.2,
+                              color: selected ? p.onInk : p.inkSoft,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );

@@ -11,11 +11,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('End-to-end flow: Add discipline and register partial absence', (tester) async {
+  testWidgets('cadastra disciplina e registra falta de 1 tempo', (tester) async {
     final appState = AppState();
     await appState.init();
 
-    // 1. Add a discipline directly to state or via UI
     final discipline = Discipline(
       id: 'poo_1',
       name: 'Programação Orientada a Objeto',
@@ -28,19 +27,16 @@ void main() {
     await tester.pumpWidget(FrequenciaApp(appState: appState));
     await tester.pumpAndSettle();
 
-    // Verify card is rendered on home screen
     expect(find.text('Programação Orientada a Objeto'), findsOneWidget);
-    expect(find.text(' / 15 faltas'), findsOneWidget);
+    expect(find.text('2 tempos por aula'), findsOneWidget);
 
-    // 2. Tap card to view details
     await tester.tap(find.text('Programação Orientada a Objeto'));
     await tester.pumpAndSettle();
 
-    expect(find.text('2 tempos por aula'), findsOneWidget);
+    expect(find.text('2 tempos por aula, limite de 15 faltas'), findsOneWidget);
     expect(find.text('Registrar falta'), findsOneWidget);
-    expect(find.text('Frequência perfeita!'), findsOneWidget);
+    expect(find.text('Nenhuma falta registrada ainda.'), findsOneWidget);
 
-    // 3. Register a partial absence (1 tempo out of 2)
     final absence = AbsenceRecord(
       id: 'abs_1',
       date: DateTime.now(),
@@ -49,12 +45,10 @@ void main() {
     await appState.addAbsence('poo_1', absence);
     await tester.pumpAndSettle();
 
-    // 1 tempo of 2 = 0.5 falta
     expect(find.textContaining('0,5'), findsWidgets);
     expect(find.text('1º tempo'), findsOneWidget);
-    expect(find.text('0,5 faltas equivalentes'), findsOneWidget);
+    expect(find.text('0,5 falta'), findsOneWidget);
 
-    // 4. Test theme toggle
     expect(appState.themeMode, ThemeMode.light);
     await appState.toggleTheme();
     expect(appState.themeMode, ThemeMode.dark);

@@ -17,18 +17,14 @@ void main() {
       expect(AttendanceCalculator.formatAbsences(equivalent), '2');
     });
 
-    test('2 tempos por aula: falta parcial e completa (exemplo do prompt)', () {
-      // Prompt: "Se eu perder apenas um dos dois tempos: 1 tempo = 0,5 falta"
-      // "Se eu perder os dois: 2 tempos = 1 falta"
-      // "total_tempos_perdidos = 7, tempos_por_aula = 2 -> faltas = 3,5"
+    test('2 tempos por aula: falta parcial e completa', () {
       final records = [
-        AbsenceRecord(id: '1', date: DateTime(2026, 9, 20), missedPeriods: [1]), // 1 tempo
-        AbsenceRecord(id: '2', date: DateTime(2026, 9, 21), missedPeriods: [1, 2]), // 2 tempos
-        AbsenceRecord(id: '3', date: DateTime(2026, 9, 22), missedPeriods: [1, 2]), // 2 tempos
-        AbsenceRecord(id: '4', date: DateTime(2026, 9, 23), missedPeriods: [2]), // 1 tempo
-        AbsenceRecord(id: '5', date: DateTime(2026, 9, 24), missedPeriods: [1]), // 1 tempo
+        AbsenceRecord(id: '1', date: DateTime(2026, 9, 20), missedPeriods: [1]),
+        AbsenceRecord(id: '2', date: DateTime(2026, 9, 21), missedPeriods: [1, 2]),
+        AbsenceRecord(id: '3', date: DateTime(2026, 9, 22), missedPeriods: [1, 2]),
+        AbsenceRecord(id: '4', date: DateTime(2026, 9, 23), missedPeriods: [2]),
+        AbsenceRecord(id: '5', date: DateTime(2026, 9, 24), missedPeriods: [1]),
       ];
-      // Total periods = 1 + 2 + 2 + 1 + 1 = 7
       final totalPeriods = AttendanceCalculator.calculateTotalMissedPeriods(records);
       final equivalent = AttendanceCalculator.calculateEquivalentAbsences(totalPeriods, 2);
 
@@ -38,10 +34,6 @@ void main() {
     });
 
     test('3 tempos por aula: falta parcial (1 ou 2 tempos) e completa', () {
-      // Prompt:
-      // 1 tempo perdido = 0.333... falta
-      // 2 tempos = 0.666... falta
-      // 3 tempos = 1 falta
       final partial1 = AttendanceCalculator.calculateEquivalentAbsences(1, 3);
       expect(partial1, closeTo(1 / 3, 0.0001));
       expect(AttendanceCalculator.formatAbsences(partial1), '0,33');
@@ -87,14 +79,12 @@ void main() {
       );
       expect(pct60, closeTo(93.33, 0.1));
 
-      // 0 faltas -> 100%
       final pctZero = AttendanceCalculator.calculateFrequencyPercentage(
         equivalentAbsences: 0.0,
         totalExpectedClasses: 60,
       );
       expect(pctZero, 100.0);
 
-      // Faltas acima do total de aulas não deve passar de 0%
       final pctOver = AttendanceCalculator.calculateFrequencyPercentage(
         equivalentAbsences: 70.0,
         totalExpectedClasses: 60,
@@ -132,15 +122,15 @@ void main() {
 
     test('Cálculo de faltas e tempos restantes', () {
       const limit = 15.0;
-      const periodsPerClass = 2; // total allowed periods = 30
-      final totalMissedPeriods = 7; // 3.5 faltas
+      const periodsPerClass = 2;
+      final totalMissedPeriods = 7;
       final equivalent = AttendanceCalculator.calculateEquivalentAbsences(totalMissedPeriods, periodsPerClass);
 
       final remainingAbsences = AttendanceCalculator.calculateRemainingAbsences(limit, equivalent);
       final remainingPeriods = AttendanceCalculator.calculateRemainingPeriods(limit, periodsPerClass, totalMissedPeriods);
 
       expect(remainingAbsences, 11.5);
-      expect(remainingPeriods, 23); // 30 - 7 = 23 tempos restantes
+      expect(remainingPeriods, 23);
     });
   });
 }

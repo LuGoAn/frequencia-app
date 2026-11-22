@@ -17,7 +17,6 @@ class AppState extends ChangeNotifier {
 
   int get totalDisciplines => _disciplines.length;
 
-  /// Calculates average frequency across all disciplines
   double get averageFrequency {
     if (_disciplines.isEmpty) return 100.0;
     final total = _disciplines.fold<double>(0.0, (sum, d) {
@@ -30,7 +29,6 @@ class AppState extends ChangeNotifier {
     return total / _disciplines.length;
   }
 
-  /// Disciplines that are in warning or exceeded state
   int get disciplinesAtRisk {
     return _disciplines.where((d) {
       final status = AttendanceCalculator.getStatus(
@@ -91,7 +89,6 @@ class AppState extends ChangeNotifier {
     if (index != -1) {
       final current = _disciplines[index];
       final updatedAbsences = [record, ...current.absences];
-      // Sort absences by date descending
       updatedAbsences.sort((a, b) => b.date.compareTo(a.date));
       _disciplines[index] = current.copyWith(absences: updatedAbsences);
       notifyListeners();
